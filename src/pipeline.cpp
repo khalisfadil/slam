@@ -533,9 +533,7 @@ void SLAMPipeline::dataAlignmentID20(const std::vector<int>& allowedCores) {
             lidarDecode::LidarDataFrame lidar_frame;
             size_t consecutive_empty_buffer_count = 0;
             if (!lidar_buffer_.pop(lidar_frame) || lidar_frame.timestamp_points.empty()) {
-#ifdef DEBUG
-                logMessage("WARNING", "dataAlignmentID20: Failed to retrieve LidarDataFrame or empty timestamp_points.");
-#endif
+
                 // Increment empty buffer counter and wait briefly
                 if (++consecutive_empty_buffer_count >= max_empty_buffer_count) {
 #ifdef DEBUG
@@ -573,9 +571,7 @@ void SLAMPipeline::dataAlignmentID20(const std::vector<int>& allowedCores) {
             while (!aligned && gnss_window_buffer_.read_available() > 0) {
                 std::deque<decodeNav::DataFrameID20> gnss_window_packet;
                 if (!gnss_window_buffer_.pop(gnss_window_packet) || gnss_window_packet.empty()) {
-#ifdef DEBUG
-                    logMessage("WARNING", "dataAlignmentID20: Failed to retrieve DataFrameID20 window or empty packet.");
-#endif
+
                     break; // Try next LiDAR frame
                 }
 
@@ -685,9 +681,7 @@ void SLAMPipeline::runLoStateEstimation(const std::vector<int>& allowedCores)
             // 1. Pop combined LiDAR-GNSS data from buffer
             LidarGnssWindowDataFrame tempCombineddata;
             if (!lidar_gnsswindow_buffer_.pop(tempCombineddata)) {
-#ifdef DEBUG
-                logMessage("WARNING", "runLoStateEstimation: Failed to retrieve LidarGnssWindowDataFrame from SPSC buffer.");
-#endif
+
                 // Handle buffer starvation
                 if (++consecutive_empty_buffer_count >= max_empty_buffer_count) {
 #ifdef DEBUG
@@ -858,9 +852,7 @@ void SLAMPipeline::runGroundTruthEstimation(const std::string& filename, const s
             // Pop GNSS frame from buffer
             decodeNav::DataFrameID20 currFrame;
             if (!gnss_buffer_.pop(currFrame)) {
-#ifdef DEBUG
-                logMessage("WARNING", "runGroundTruthEstimation: Failed to retrieve DataFrameID20 from SPSC buffer.");
-#endif
+
                 // Handle buffer starvation
                 if (++consecutive_empty_buffer_count >= max_empty_buffer_count) {
 #ifdef DEBUG
