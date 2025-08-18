@@ -731,14 +731,13 @@ void SLAMPipeline::runLoStateEstimation(const std::vector<int>& allowedCores)
                 }
 
                 // Calculate rotation from robot to map (R_mr)
-                Eigen::Matrix3d Rb2m = navMath::Cb2n(navMath::getQuat(
-                    currFrame.roll, currFrame.pitch, currFrame.yaw));
+                Eigen::Matrix3d Rb2m = navMath::Cb2n(navMath::getQuat(currFrame.roll, currFrame.pitch, currFrame.yaw));
                 Eigen::Matrix3d Rm2b = Rb2m.transpose();
                 Eigen::Matrix4d Tm2b = Eigen::Matrix4d::Identity();
                 Tm2b.block<3, 3>(0, 0) = Rm2b;
 
                 // Initialize odometry
-                odometry_->initT(Tm2b);
+                odometry_->initializeInitialPose(Tm2b);
                 init_ = true;
 
 #ifdef DEBUG
@@ -829,4 +828,160 @@ void SLAMPipeline::runLoStateEstimation(const std::vector<int>& allowedCores)
 #ifdef DEBUG
     logMessage("LOGGING", "runLoStateEstimation: Stopped");
 #endif
+}
+
+// -----------------------------------------------------------------------------
+
+void SLAMPipeline::runGroundTruthEstimation(const std::string& filename, const std::vector<int>& allowedCores) {
+    setThreadAffinity(allowedCores);
+
+    // Open output file
+    std::ofstream outfile(filename);
+    if (!outfile.is_open()) {
+        auto now = std::chrono::system_clock::now();
+        auto now_time_t = std::chrono::system_clock::to_time_t(now);
+        std::ostringstream oss;
+        oss << "[" << std::put_time(std::gmtime(&now_time_t), "%Y-%m-%dT%H:%M:%SZ") << "] "
+            << "[ERROR] failed to open file " << filename << " for writing.";
+        std::cerr << oss.str();
+#ifdef DEBUG
+        logMessage("ERROR", oss.str());
+#endif
+        return;
+    }
+
+    constexpr size_t max_empty_buffer_count = 100; // Wait if no data for too long
+    size_t consecutive_empty_buffer_count = 0;
+
+    while (running_.load(std::memory_order_acquire)) {
+        try {
+            // Pop GNSS frame from buffer
+            decodeNav::DataFrameID20 currFrame;
+            if (!gnss_buffer_.pop(currFrame)) {
+#ifdef DEBUG
+                logMessage("WARNING", "runGroundTruthEstimation: Failed to retrieve DataFrameID20 from SPSC buffer.");
+#endif
+                // Handle buffer starvation
+                if (++consecutive_empty_buffer_count >= max_empty_buffer_count) {
+#ifdef DEBUG
+                    logMessage("WARNING", "runGroundTruthEstimation: No GNSS data available after multiple attempts.");
+#endif
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    continue;
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                continue;
+            }
+            consecutive_empty_buffer_count = 0; // Reset on successful pop
+
+            // Validate GNSS data
+            if (currFrame.unixTime <= 0) {
+#ifdef DEBUG
+                std::ostringstream oss;
+                oss << "runGroundTruthEstimation: Invalid GNSS timestamp: " << currFrame.unixTime;
+                logMessage("ERROR", oss.str());
+#endif
+                continue;
+            }
+
+            // Process frame
+            Eigen::Matrix4d Tm2b = Eigen::Matrix4d::Identity();
+            if (is_firstFrame_) {
+                // Handle the first frame
+                Eigen::Matrix3d Rb2m = navMath::Cb2n(navMath::getQuat(
+                    currFrame.roll, currFrame.pitch, currFrame.yaw));
+                Eigen::Matrix3d Rm2b = Rb2m.transpose();
+                Tm2b.block<3, 3>(0, 0) = Rm2b;
+
+                originFrame_ = currFrame;
+                is_firstFrame_ = false;
+
+                // Output origin LLA and transformation
+                steam::traj::Time Time(currFrame.unixTime);
+                outfile << std::fixed << std::setprecision(12) << Time.nanosecs() << " "
+                        << currFrame.latitude << " " << currFrame.longitude << " " << currFrame.altitude << " "
+                        << currFrame.roll << " " << currFrame.pitch << " " << currFrame.yaw << "\n";
+                outfile << std::fixed << std::setprecision(12) << Time.nanosecs() << " "
+                        << Tm2b(0, 0) << " " << Tm2b(0, 1) << " " << Tm2b(0, 2) << " " << Tm2b(0, 3) << " "
+                        << Tm2b(1, 0) << " " << Tm2b(1, 1) << " " << Tm2b(1, 2) << " " << Tm2b(1, 3) << " "
+                        << Tm2b(2, 0) << " " << Tm2b(2, 1) << " " << Tm2b(2, 2) << " " << Tm2b(2, 3) << " "
+                        << Tm2b(3, 0) << " " << Tm2b(3, 1) << " " << Tm2b(3, 2) << " " << Tm2b(3, 3) << "\n";
+
+#ifdef DEBUG
+                std::ostringstream oss;
+                oss << "runGroundTruthEstimation (ORIGIN): " << Time.nanosecs() << " "
+                    << currFrame.latitude << " " << currFrame.longitude << " " << currFrame.altitude << " "
+                    << currFrame.roll << " " << currFrame.pitch << " " << currFrame.yaw;
+                logMessage("LOGGING", oss.str());
+#endif
+            } else {
+                // Handle subsequent frames
+                Eigen::Matrix3d Rb2m = navMath::Cb2n(navMath::getQuat(
+                    currFrame.roll, currFrame.pitch, currFrame.yaw));
+                Eigen::Vector3d tb2m = navMath::LLA2NED(
+                    currFrame.latitude, currFrame.longitude, currFrame.altitude,
+                    originFrame_.latitude, originFrame_.longitude, originFrame_.altitude);
+                Eigen::Matrix3d Rm2b = Rb2m.transpose();
+                Eigen::Vector3d tm2b = -Rm2b * tb2m;
+                Tm2b.block<3, 3>(0, 0) = Rm2b;
+                Tm2b.block<3, 1>(0, 3) = tm2b;
+
+                odometry_->T_i_r_gt_poses.push_back(Tm2b);
+
+                // Output transformation
+                steam::traj::Time Time(currFrame.unixTime);
+                outfile << std::fixed << std::setprecision(12) << Time.nanosecs() << " "
+                        << Tm2b(0, 0) << " " << Tm2b(0, 1) << " " << Tm2b(0, 2) << " " << Tm2b(0, 3) << " "
+                        << Tm2b(1, 0) << " " << Tm2b(1, 1) << " " << Tm2b(1, 2) << " " << Tm2b(1, 3) << " "
+                        << Tm2b(2, 0) << " " << Tm2b(2, 1) << " " << Tm2b(2, 2) << " " << Tm2b(2, 3) << " "
+                        << Tm2b(3, 0) << " " << Tm2b(3, 1) << " " << Tm2b(3, 2) << " " << Tm2b(3, 3) << "\n";
+
+#ifdef DEBUG
+                std::ostringstream oss;
+                oss << "runGroundTruthEstimation: Registered pose at timestamp " << Time.nanosecs();
+                logMessage("LOGGING", oss.str());
+#endif
+            }
+
+            // Periodic flush to ensure data is written
+            if (outfile.tellp() > 1024 * 1024) { // Flush every ~1MB
+                outfile.flush();
+                if (!outfile.good()) {
+#ifdef DEBUG
+                    logMessage("ERROR", "runGroundTruthEstimation: Failed to write to file " + filename);
+#endif
+                    running_.store(false, std::memory_order_release);
+                    break;
+                }
+            }
+
+        } catch (const std::exception& e) {
+#ifdef DEBUG
+            std::ostringstream oss;
+            oss << "runGroundTruthEstimation: Exception occurred: " << e.what();
+            logMessage("ERROR", oss.str());
+#endif
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    }
+
+    // Final flush and close
+    outfile.flush();
+    if (!outfile.good()) {
+#ifdef DEBUG
+        logMessage("ERROR", "runGroundTruthEstimation: Failed to write final data to file " + filename);
+#endif
+    }
+    outfile.close();
+#ifdef DEBUG
+    logMessage("LOGGING", "runGroundTruthEstimation: Stopped");
+#endif
+}
+
+// -----------------------------------------------------------------------------
+
+void SLAMPipeline::saveOdometryResults(const std::string& timestamp) {
+    if (odometry_) {
+        odometry_->getResults(timestamp);
+    }
 }
