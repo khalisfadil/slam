@@ -19,6 +19,7 @@
 
 #include <OusterLidarCallback.hpp>
 #include <odometry/steam_lo.hpp>
+#include <utils/stopwatch.hpp>
 
 #include <callback_gnssComp.hpp>
 #include <DataFrame_ID20.hpp>

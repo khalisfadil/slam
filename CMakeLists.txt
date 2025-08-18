@@ -61,6 +61,7 @@ set(SLAM_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/include")
 set(STATEESTIMATION_INCLUDE_DIRS
     "${CMAKE_SOURCE_DIR}/extern/state_estimation/include"
     "${CMAKE_SOURCE_DIR}/extern/state_estimation/include/odometry"
+    "${CMAKE_SOURCE_DIR}/extern/state_estimation/include/utils"
 )
 set(GNSSKOMPASS_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/extern/GNSSKompass/include")
 set(LIDARDECODE_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/extern/LidarDecode/include")
