@@ -125,8 +125,8 @@ target_link_libraries(slam_core
         Boost::thread
         Open3D::Open3D
         Threads::Threads
-        lgmath::lgmath
-        steam::steam
+        lgmath
+        steam
     PRIVATE
         $<$<BOOL:${CPUID_LIBRARY}>:${CPUID_LIBRARY}>
 )
