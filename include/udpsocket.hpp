@@ -55,6 +55,20 @@ namespace udp_socket {
      */
     class UdpSocket : public std::enable_shared_from_this<UdpSocket> {
     public:
+    
+        UdpSocket(
+            boost::asio::io_context& context,
+            DataCallback dataCallback,
+            ErrorCallback errorCallback,
+            const UdpSocketConfig& config)
+            : socket_(context), resolver_(context), timeoutTimer_(context),
+            buffer_(config.bufferSize), dataCallback_(std::move(dataCallback)),
+            errorCallback_(std::move(errorCallback)), config_(config) {
+            if (config.bufferSize == 0) {
+                throw std::invalid_argument("Buffer size must be non-zero");
+            }
+        }
+
         /**
          * @brief Factory function to create and initialize a UdpSocket.
          * 
@@ -129,18 +143,6 @@ namespace udp_socket {
         }
 
     private:
-        UdpSocket(
-            boost::asio::io_context& context,
-            DataCallback dataCallback,
-            ErrorCallback errorCallback,
-            const UdpSocketConfig& config)
-            : socket_(context), resolver_(context), timeoutTimer_(context),
-            buffer_(config.bufferSize), dataCallback_(std::move(dataCallback)),
-            errorCallback_(std::move(errorCallback)), config_(config) {
-            if (config.bufferSize == 0) {
-                throw std::invalid_argument("Buffer size must be non-zero");
-            }
-        }
 
         inline void start(const std::string& host, uint16_t port) {
             resolver_.async_resolve(
