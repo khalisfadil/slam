@@ -10,7 +10,7 @@ int main() {
     std::string udp_dest;
     std::string udp_dest_all = "192.168.75.10";
     uint16_t udp_port_lidar; 
-    uint16_t udp_port_imu;
+    // uint16_t udp_port_imu;
     uint16_t udp_port_gnss = 6597;
     uint32_t id20_packet_size = 105;
 
@@ -53,7 +53,7 @@ int main() {
 
         udp_profile_lidar = metadata_["config_params"]["udp_profile_lidar"].get<std::string>();
         udp_port_lidar = metadata_["config_params"]["udp_port_lidar"].get<uint16_t>();
-        udp_port_imu = metadata_["config_params"]["udp_port_imu"].get<uint16_t>();
+        // udp_port_imu = metadata_["config_params"]["udp_port_imu"].get<uint16_t>();
         udp_dest = metadata_["config_params"]["udp_dest"].get<std::string>();
 
     } catch (const std::exception& e) {
