@@ -742,7 +742,7 @@ void SLAMPipeline::runLoStateEstimation(const std::vector<int>& allowedCores)
 
 #ifdef DEBUG
                 std::ostringstream oss;
-                oss << "runLoStateEstimation (ORIGIN): " << finalicp::traj::Time(currFrame.unixTime).nanosecs() << " "
+                oss << "runLoStateEstimation (ORIGIN): " << Time(currFrame.unixTime).nanosecs() << " "
                     << currFrame.latitude << " " << currFrame.longitude << " " << currFrame.altitude
                     << " " << currFrame.roll << " " << currFrame.pitch << " " << currFrame.yaw;
                 logMessage("LOGGING", oss.str());
