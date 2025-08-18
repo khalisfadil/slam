@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Compiler flags
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -fPIC") # Add -fPIC for PIE compatibility
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ffast-math -march=native")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0 -DDEBUG")
 
@@ -103,15 +103,16 @@ set(SLAM_SOURCES
 )
 
 # Combine all sources
-set(SLAM_SOURCES)
+set(ALL_SOURCES)
 foreach(GROUP ${SOURCE_GROUPS})
-    list(APPEND SLAM_SOURCES ${${GROUP}_SOURCES})
+    list(APPEND ALL_SOURCES ${${GROUP}_SOURCES})
 endforeach()
 
 # Create core library
-add_library(slam_core SHARED ${SLAM_SOURCES})
+add_library(slam_core STATIC ${ALL_SOURCES}) # Changed to STATIC for simpler linking
+target_compile_options(slam_core PRIVATE -fPIC) # Ensure position-independent code
 
-# Set include directories and link libraries
+# Set include directories and link libraries for slam_core
 target_include_directories(slam_core
     PUBLIC
         ${PROJECT_INCLUDE_DIRS}
@@ -138,7 +139,22 @@ target_include_directories(slam
     PUBLIC
         ${PROJECT_INCLUDE_DIRS}
 )
-target_link_libraries(slam PRIVATE slam_core)
+# Link slam against slam_core and its dependencies
+target_link_libraries(slam
+    PUBLIC
+        slam_core
+        Eigen3::Eigen
+        nlohmann_json::nlohmann_json
+        OpenMP::OpenMP_CXX
+        Boost::system
+        Boost::thread
+        Open3D::Open3D
+        Threads::Threads
+        lgmath
+        steam
+    PRIVATE
+        $<$<BOOL:${CPUID_LIBRARY}>:${CPUID_LIBRARY}>
+)
 
 # Generate compile commands for IDEs
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
