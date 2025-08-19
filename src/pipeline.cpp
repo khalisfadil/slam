@@ -726,12 +726,11 @@ void SLAMPipeline::runLoStateEstimation(const std::vector<int>& allowedCores)
 
                 // Calculate rotation from robot to map (R_mr)
                 Eigen::Matrix3d Rb2m = navMath::Cb2n(navMath::getQuat(currFrame.roll, currFrame.pitch, currFrame.yaw));
-                Eigen::Matrix3d Rm2b = Rb2m.transpose();
-                Eigen::Matrix4d Tm2b = Eigen::Matrix4d::Identity();
-                Tm2b.block<3, 3>(0, 0) = Rm2b;
+                Eigen::Matrix4d Tb2m = Eigen::Matrix4d::Identity();
+                Tb2m.block<3, 3>(0, 0) = Rb2m;
 
                 // Initialize odometry
-                odometry_->initializeInitialPose(Tm2b);
+                odometry_->initializeInitialPose(Tb2m);
                 init_ = true;
 
 #ifdef DEBUG
@@ -877,13 +876,13 @@ void SLAMPipeline::runGroundTruthEstimation(const std::string& filename, const s
             }
 
             // Process frame
-            Eigen::Matrix4d Tm2b = Eigen::Matrix4d::Identity();
+            Eigen::Matrix4d Tb2m = Eigen::Matrix4d::Identity();
             if (is_firstFrame_) {
                 // Handle the first frame
                 Eigen::Matrix3d Rb2m = navMath::Cb2n(navMath::getQuat(
                     currFrame.roll, currFrame.pitch, currFrame.yaw));
-                Eigen::Matrix3d Rm2b = Rb2m.transpose();
-                Tm2b.block<3, 3>(0, 0) = Rm2b;
+                // Eigen::Matrix3d Rm2b = Rb2m.transpose();
+                Tb2m.block<3, 3>(0, 0) = Rb2m;
 
                 originFrame_ = currFrame;
                 is_firstFrame_ = false;
@@ -894,10 +893,10 @@ void SLAMPipeline::runGroundTruthEstimation(const std::string& filename, const s
                         << currFrame.latitude << " " << currFrame.longitude << " " << currFrame.altitude << " "
                         << currFrame.roll << " " << currFrame.pitch << " " << currFrame.yaw << "\n";
                 outfile << std::fixed << std::setprecision(12) << Time.nanosecs() << " "
-                        << Tm2b(0, 0) << " " << Tm2b(0, 1) << " " << Tm2b(0, 2) << " " << Tm2b(0, 3) << " "
-                        << Tm2b(1, 0) << " " << Tm2b(1, 1) << " " << Tm2b(1, 2) << " " << Tm2b(1, 3) << " "
-                        << Tm2b(2, 0) << " " << Tm2b(2, 1) << " " << Tm2b(2, 2) << " " << Tm2b(2, 3) << " "
-                        << Tm2b(3, 0) << " " << Tm2b(3, 1) << " " << Tm2b(3, 2) << " " << Tm2b(3, 3) << "\n";
+                        << Tb2m(0, 0) << " " << Tb2m(0, 1) << " " << Tb2m(0, 2) << " " << Tb2m(0, 3) << " "
+                        << Tb2m(1, 0) << " " << Tb2m(1, 1) << " " << Tb2m(1, 2) << " " << Tb2m(1, 3) << " "
+                        << Tb2m(2, 0) << " " << Tb2m(2, 1) << " " << Tb2m(2, 2) << " " << Tb2m(2, 3) << " "
+                        << Tb2m(3, 0) << " " << Tb2m(3, 1) << " " << Tb2m(3, 2) << " " << Tb2m(3, 3) << "\n";
 
 #ifdef DEBUG
                 std::ostringstream oss;
@@ -915,6 +914,10 @@ void SLAMPipeline::runGroundTruthEstimation(const std::string& filename, const s
                     originFrame_.latitude, originFrame_.longitude, originFrame_.altitude);
                 Eigen::Matrix3d Rm2b = Rb2m.transpose();
                 Eigen::Vector3d tm2b = -Rm2b * tb2m;
+                Tb2m.block<3, 3>(0, 0) = Rb2m;
+                Tb2m.block<3, 1>(0, 3) = tb2m;
+
+                Eigen::Matrix4d Tm2b = Eigen::Matrix4d::Identity();
                 Tm2b.block<3, 3>(0, 0) = Rm2b;
                 Tm2b.block<3, 1>(0, 3) = tm2b;
 
@@ -923,10 +926,10 @@ void SLAMPipeline::runGroundTruthEstimation(const std::string& filename, const s
                 // Output transformation
                 steam::traj::Time Time(currFrame.unixTime);
                 outfile << std::fixed << std::setprecision(12) << Time.nanosecs() << " "
-                        << Tm2b(0, 0) << " " << Tm2b(0, 1) << " " << Tm2b(0, 2) << " " << Tm2b(0, 3) << " "
-                        << Tm2b(1, 0) << " " << Tm2b(1, 1) << " " << Tm2b(1, 2) << " " << Tm2b(1, 3) << " "
-                        << Tm2b(2, 0) << " " << Tm2b(2, 1) << " " << Tm2b(2, 2) << " " << Tm2b(2, 3) << " "
-                        << Tm2b(3, 0) << " " << Tm2b(3, 1) << " " << Tm2b(3, 2) << " " << Tm2b(3, 3) << "\n";
+                        << Tb2m(0, 0) << " " << Tb2m(0, 1) << " " << Tb2m(0, 2) << " " << Tb2m(0, 3) << " "
+                        << Tb2m(1, 0) << " " << Tb2m(1, 1) << " " << Tb2m(1, 2) << " " << Tb2m(1, 3) << " "
+                        << Tb2m(2, 0) << " " << Tb2m(2, 1) << " " << Tb2m(2, 2) << " " << Tb2m(2, 3) << " "
+                        << Tb2m(3, 0) << " " << Tb2m(3, 1) << " " << Tb2m(3, 2) << " " << Tb2m(3, 3) << "\n";
 
 #ifdef DEBUG
                 std::ostringstream oss;
