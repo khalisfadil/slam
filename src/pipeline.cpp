@@ -730,7 +730,7 @@ void SLAMPipeline::runLoStateEstimation(const std::vector<int>& allowedCores)
                 Tb2m.block<3, 3>(0, 0) = Rb2m;
 
                 // Initialize odometry
-                odometry_->initializeInitialPose(Tb2m);
+                odometry_->initializeInitialPose(Tb2m); //body to global map
                 init_ = true;
 
 #ifdef DEBUG
