@@ -60,7 +60,7 @@
 
         "gravity": 9.80665,
         "use_imu": true,
-        "use_accel": false,
+        "use_accel": true,
         "r_imu_acc": [1e-3, 1e-3, 1e-3],
         "r_imu_ang": [1e-3, 1e-3, 1e-3],
         "r_pose": [1e-6, 1e-6, 1e-6, 1e-6, 1e-6, 1e-6],
