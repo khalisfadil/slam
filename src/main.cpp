@@ -87,7 +87,7 @@ int main() {
     config_compass.reuseAddress = true; // Allow port reuse
 
     // ########################################################
-    uint16_t chnl_strd = 2;
+    uint16_t chnl_strd = 4;
     SLAMPipeline pipeline("SLAM_LIDAR_ODOM", config_json, lidar_json, lidarDecode::OusterLidarCallback::LidarTransformPreset::GEHLSDORF20250410, chnl_strd);
 
     struct sigaction sigIntHandler;
