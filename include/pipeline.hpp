@@ -62,7 +62,7 @@ class SLAMPipeline {
 
         boost::lockfree::spsc_queue<std::string, boost::lockfree::capacity<16>> log_queue_;
 
-        explicit SLAMPipeline(const std::string& slam_registration, const std::string& odom_json_path, const std::string& lidar_json_path, const lidarDecode::OusterLidarCallback::LidarTransformPreset& T_preset);
+        explicit SLAMPipeline(const std::string& slam_registration, const std::string& odom_json_path, const std::string& lidar_json_path, const lidarDecode::OusterLidarCallback::LidarTransformPreset& T_preset, uint16_t N = 1);
         static void signalHandler(int signal);
         void setThreadAffinity(const std::vector<int>& coreIDs);
 

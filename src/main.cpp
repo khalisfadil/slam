@@ -87,8 +87,8 @@ int main() {
     config_compass.reuseAddress = true; // Allow port reuse
 
     // ########################################################
-
-    SLAMPipeline pipeline("SLAM_LIDAR_ODOM", config_json, lidar_json, lidarDecode::OusterLidarCallback::LidarTransformPreset::GEHLSDORF20250410);
+    uint16_t chnl_strd = 2;
+    SLAMPipeline pipeline("SLAM_LIDAR_ODOM", config_json, lidar_json, lidarDecode::OusterLidarCallback::LidarTransformPreset::GEHLSDORF20250410, chnl_strd);
 
     struct sigaction sigIntHandler;
     sigIntHandler.sa_handler = SLAMPipeline::signalHandler;
@@ -145,9 +145,9 @@ int main() {
 
         threads.emplace_back([&]() { pipeline.runGNSSID20Listener(ioContextPoints, config_compass, std::vector<int>{1}); });
         threads.emplace_back([&]() { pipeline.dataAlignmentID20(std::vector<int>{2}); });
-        threads.emplace_back([&]() { pipeline.processLogQueue(log_filename,std::vector<int>{3}); });
-        threads.emplace_back([&]() { pipeline.runLoStateEstimation(std::vector<int>{4,5,6,7,8,9,10,11}); });
-        threads.emplace_back([&]() { pipeline.runGroundTruthEstimation(gt_filename, std::vector<int>{12}); });
+        threads.emplace_back([&]() { pipeline.runLoStateEstimation(std::vector<int>{3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18}); });
+        threads.emplace_back([&]() { pipeline.runGroundTruthEstimation(gt_filename, std::vector<int>{19}); });
+        threads.emplace_back([&]() { pipeline.processLogQueue(log_filename,std::vector<int>{20}); });
 
         while (SLAMPipeline::running_.load(std::memory_order_acquire)) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));

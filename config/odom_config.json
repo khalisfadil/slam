@@ -22,7 +22,7 @@
         "min_number_keypoints": 50,
 
         "sequential_threshold_odom": 1000,
-        "num_threads_odom": 8,
+        "num_threads_odom": 16,
 
         "debug_print": false,
         "debug_path": "../report/traj/",
@@ -48,7 +48,7 @@
         "verbose": false,
         "max_iterations": 5,
         "sequential_threshold" : 1000,
-        "num_threads": 8,
+        "num_threads": 16,
         "delay_adding_points": 10,
         "use_final_state_value": false,
         "break_icp_early": false,

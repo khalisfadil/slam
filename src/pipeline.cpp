@@ -20,9 +20,9 @@ void SLAMPipeline::logMessage(const std::string& level, const std::string& messa
 
 // -----------------------------------------------------------------------------
 
-SLAMPipeline::SLAMPipeline(const std::string& slam_registration, const std::string& odom_json_path, const std::string& lidar_json_path, const lidarDecode::OusterLidarCallback::LidarTransformPreset& T_preset) 
+SLAMPipeline::SLAMPipeline(const std::string& slam_registration, const std::string& odom_json_path, const std::string& lidar_json_path, const lidarDecode::OusterLidarCallback::LidarTransformPreset& T_preset, uint16_t N) 
     : odometry_(stateestimate::Odometry::Get(slam_registration, odom_json_path)), // <-- INITIALIZE HERE, 
-    lidarCallback_(lidar_json_path, T_preset) {// You can initialize other members here too
+    lidarCallback_(lidar_json_path, T_preset, N) {// You can initialize other members here too
     temp_IMU_vec_data_.reserve(VECTOR_SIZE_IMU);
     odometry_->T_i_r_gt_poses.reserve(GT_SIZE_COMPASS);
 
