@@ -64,10 +64,10 @@
         "r_imu_acc": [1e-3, 1e-3, 1e-3],
         "r_imu_ang": [1e-3, 1e-3, 1e-3],
         "r_pose": [1e-6, 1e-6, 1e-6, 1e-6, 1e-6, 1e-6],
-        "p0_bias_accel": [1e-4, 1e-4, 1e-4],
+        "p0_bias_accel": [1e-6, 1e-6, 1e-6],
         "pk_bias_accel": 1e-4,
         "q_bias_accel": [1e-4, 1e-4, 1e-4],
-        "p0_bias_gyro": 1e-4,
+        "p0_bias_gyro": 1e-6,
         "pk_bias_gyro": 1e-4,
         "q_bias_gyro": 1e-4,
         "acc_loss_func": "CAUCHY",
@@ -85,9 +85,9 @@
         "use_bias_prior_after_init": false,
 
         "T_rm_init": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
-        "p0_pose": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
-        "p0_vel": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
-        "p0_accel": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        "p0_pose": [1e-6, 1e-6, 1e-6, 1e-6, 1e-6, 1e-6],
+        "p0_vel": [1e-6, 1e-6, 1e-6, 1e-6, 1e-6, 1e-6],
+        "p0_accel": [1e-6, 1e-6, 1e-6, 1e-6, 1e-6, 1e-6],
 
         "filter_lifetimes": false
     }
