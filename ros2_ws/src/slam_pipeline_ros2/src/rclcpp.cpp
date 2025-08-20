@@ -88,10 +88,10 @@ class SlamPipelineNode : public rclcpp::Node {
                 lidarDecode::OusterLidarCallback::LidarTransformPreset::GEHLSDORF20250410,
                 4,
                 shared_from_this(),
+                odometry_publisher_,
                 raw_points_publisher_,
                 sampled_points_publisher_,
                 map_points_publisher_,
-                odometry_publisher_,
                 std::move(tf_broadcaster_),
                 std::move(tf_static_broadcaster_));
 
