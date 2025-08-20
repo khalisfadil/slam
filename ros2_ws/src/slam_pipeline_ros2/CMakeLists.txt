@@ -121,8 +121,8 @@ target_include_directories(slam_core PUBLIC ${PROJECT_INCLUDE_DIRS})
 target_link_libraries(slam_core
     PUBLIC
         rclcpp::rclcpp
-        sensor_msgs::sensor_msgs
-        nav_msgs::nav_msgs
+        sensor_msgs::sensor_msgs__cpp
+        nav_msgs::nav_msgs__cpp
         tf2_ros::tf2_ros
         Eigen3::Eigen
         nlohmann_json::nlohmann_json
@@ -144,8 +144,8 @@ target_link_libraries(ros2_slam_node
     PUBLIC
         slam_core
         rclcpp::rclcpp
-        sensor_msgs::sensor_msgs
-        nav_msgs::nav_msgs
+        sensor_msgs::sensor_msgs__cpp
+        nav_msgs::nav_msgs__cpp
         tf2_ros::tf2_ros
         Eigen3::Eigen
         nlohmann_json::nlohmann_json
