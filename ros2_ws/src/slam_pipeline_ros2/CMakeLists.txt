@@ -22,8 +22,6 @@ find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
-find_package(pcl_ros REQUIRED)
-find_package(pcl_conversions REQUIRED)
 
 # Find other dependencies
 set(Open3D_DIR "/usr/local/lib/cmake/Open3D/" CACHE PATH "Path to Open3D CMake config")
