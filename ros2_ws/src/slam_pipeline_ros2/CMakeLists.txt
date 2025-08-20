@@ -126,8 +126,6 @@ ament_target_dependencies(slam_core
     sensor_msgs
     nav_msgs
     tf2_ros
-    pcl_ros
-    pcl_conversions
 )
 target_link_libraries(slam_core
     PUBLIC
@@ -155,8 +153,6 @@ ament_target_dependencies(ros2_slam_node
     sensor_msgs
     nav_msgs
     tf2_ros
-    pcl_ros
-    pcl_conversions
 )
 target_link_libraries(ros2_slam_node
     PUBLIC
