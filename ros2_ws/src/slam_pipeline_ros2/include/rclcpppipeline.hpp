@@ -60,10 +60,10 @@ class SlamPipeline {
                             const lidarDecode::OusterLidarCallback::LidarTransformPreset& T_preset,
                             uint16_t N, 
                             rclcpp::Node::SharedPtr node = nullptr,
+                            rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_publisher,
                             rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr raw_points_publisher,
                             rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr sampled_points_publisher,
                             rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr map_points_publisher,
-                            rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_publisher,
                             std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster,
                             std::unique_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster);
         static void signalHandler(int signal);
@@ -94,12 +94,12 @@ class SlamPipeline {
             
         // ROS2 node and publishers
         rclcpp::Node::SharedPtr node_;
-
+        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_publisher_;
         rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr raw_points_publisher_;
         rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr sampled_points_publisher_;
         rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr map_points_publisher_;
 
-        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_publisher_;
+        
         std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
         std::unique_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
 
