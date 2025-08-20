@@ -14,9 +14,9 @@
         "max_distance": 500.0,
         "min_number_neighbors": 5,
         "max_number_neighbors": 20,
-        "voxel_lifetime": 10,
+        "voxel_lifetime": 20,
 
-        "num_iters_icp": 10,
+        "num_iters_icp": 20,
         "threshold_orientation_norm": 0.0001,
         "threshold_translation_norm": 0.001,
         "min_number_keypoints": 50,

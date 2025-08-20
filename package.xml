@@ -1,0 +1,22 @@
+<package format="3">
+  <name>slam_pipeline_ros2</name>
+  <version>0.0.1</version>
+  <description>ROS2 SLAM pipeline</description>
+  <maintainer email="your@email.com">Your Name</maintainer>
+  <license>Apache-2.0</license>
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>pcl_ros</depend>
+  <depend>pcl_conversions</depend>
+  <depend>libeigen3-dev</depend>
+  <depend>nlohmann-json-dev</depend>
+  <depend>libboost-system-dev</depend>
+  <depend>libboost-thread-dev</depend>
+  <depend>open3d</depend>
+  <depend>libopenmp-dev</depend>
+  <depend>lgmath</depend>
+  <depend>steam</depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

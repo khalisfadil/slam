@@ -1,13 +1,13 @@
-#include <pipeline.hpp>
+#include <rclcpppipeline.hpp>
 
 using json = nlohmann::json;
 
-std::atomic<bool> SLAMPipeline::running_{true};
-std::condition_variable SLAMPipeline::globalCV_;
+std::atomic<bool> SlamPipeline::running_{true};
+std::condition_variable SlamPipeline::globalCV_;
 
 // -----------------------------------------------------------------------------
 
-void SLAMPipeline::logMessage(const std::string& level, const std::string& message) {
+void SlamPipeline::logMessage(const std::string& level, const std::string& message) {
     auto now = std::chrono::system_clock::now();
     auto now_time_t = std::chrono::system_clock::to_time_t(now);
     std::ostringstream oss;
@@ -20,12 +20,93 @@ void SLAMPipeline::logMessage(const std::string& level, const std::string& messa
 
 // -----------------------------------------------------------------------------
 
-SLAMPipeline::SLAMPipeline(const std::string& slam_registration, const std::string& odom_json_path, const std::string& lidar_json_path, const lidarDecode::OusterLidarCallback::LidarTransformPreset& T_preset, uint16_t N) 
-    : odometry_(stateestimate::Odometry::Get(slam_registration, odom_json_path)), // <-- INITIALIZE HERE, 
-    lidarCallback_(lidar_json_path, T_preset, N) {// You can initialize other members here too
-    temp_IMU_vec_data_.reserve(VECTOR_SIZE_IMU);
-    odometry_->T_i_r_gt_poses.reserve(GT_SIZE_COMPASS);
+sensor_msgs::msg::PointCloud2 SlamPipeline::toPointCloud2(const std::vector<stateestimate::Point3D>& pointcloud,
+                                                         const std::string& frame_id,
+                                                         const rclcpp::Time& stamp) const {
+    sensor_msgs::msg::PointCloud2 points_msg;
+    points_msg.header.frame_id = frame_id;
+    points_msg.header.stamp = stamp;
+    points_msg.height = 1; // Unorganized point cloud
+    points_msg.width = pointcloud.size();
+    points_msg.is_bigendian = false;
+    points_msg.is_dense = true; // Assume no invalid points
 
+    // Define fields (x, y, z as float32)
+    sensor_msgs::msg::PointField field_x, field_y, field_z;
+    field_x.name = "x";
+    field_x.offset = 0;
+    field_x.datatype = sensor_msgs::msg::PointField::FLOAT32;
+    field_x.count = 1;
+    field_y.name = "y";
+    field_y.offset = 4;
+    field_y.datatype = sensor_msgs::msg::PointField::FLOAT32;
+    field_y.count = 1;
+    field_z.name = "z";
+    field_z.offset = 8;
+    field_z.datatype = sensor_msgs::msg::PointField::FLOAT32;
+    field_z.count = 1;
+    points_msg.fields = {field_x, field_y, field_z};
+    points_msg.point_step = 12; // 3 * sizeof(float) = 12 bytes
+    points_msg.row_step = points_msg.point_step * points_msg.width;
+
+    // Serialize point cloud data
+    points_msg.data.resize(points_msg.row_step);
+    for (size_t i = 0; i < pointcloud.size(); ++i) {
+        const auto& pt = pointcloud[i].pt; // Assume pt is Eigen::Vector3d
+        float x = static_cast<float>(pt.x());
+        float y = static_cast<float>(pt.y());
+        float z = static_cast<float>(pt.z());
+        std::memcpy(&points_msg.data[i * points_msg.point_step], &x, sizeof(float));
+        std::memcpy(&points_msg.data[i * points_msg.point_step + 4], &y, sizeof(float));
+        std::memcpy(&points_msg.data[i * points_msg.point_step + 8], &z, sizeof(float));
+    }
+
+    return points_msg;
+}
+
+// -----------------------------------------------------------------------------
+
+rclcpp::Time SlamPipeline::convertToRclcppTime(double timestamp_seconds) {
+    // Check for invalid or negative timestamp
+    if (timestamp_seconds < 0.0) {
+#ifdef DEBUG
+    logMessage("LOGGING", "Invalid timestamp. Given timestamp (sec) is below 0.");
+#endif
+        return rclcpp::Time(0, 0, RCL_ROS_TIME);
+    }
+
+    // Split the timestamp into seconds and nanoseconds
+    int64_t seconds = static_cast<int64_t>(timestamp_seconds);
+    uint32_t nanoseconds = static_cast<uint32_t>((timestamp_seconds - seconds) * 1e9);
+
+    // Create rclcpp::Time object
+    return rclcpp::Time(seconds, nanoseconds, RCL_ROS_TIME);
+}
+
+// -----------------------------------------------------------------------------
+
+SlamPipeline::SlamPipeline(const std::string& slam_registration,
+                            const std::string& odom_json_path,
+                            const std::string& lidar_json_path,
+                            const lidarDecode::OusterLidarCallback::LidarTransformPreset& T_preset,
+                            uint16_t N,
+                            rclcpp::Node::SharedPtr node,
+                            rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr raw_points_publisher,
+                            rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr sampled_points_publisher,
+                            rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr map_points_publisher,
+                            rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_publisher,
+                            std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster,
+                            std::unique_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster)
+    : node_(node),
+      odometry_(stateestimate::Odometry::Get(slam_registration, odom_json_path)),
+      lidarCallback_(lidar_json_path, T_preset, N),
+      raw_points_publisher_(raw_points_publisher),
+      sampled_points_publisher_(sampled_points_publisher),
+      map_points_publisher_(map_points_publisher),
+      odometry_publisher_(odometry_publisher),
+      tf_broadcaster_(std::move(tf_broadcaster)),
+      tf_static_broadcaster_(std::move(tf_static_broadcaster)) {
+      odometry_->T_i_r_gt_poses.reserve(GT_SIZE_COMPASS);
 #ifdef DEBUG
     logMessage("LOGGING", "SLAMPipeline and Odometry object initialized.");
 #endif
@@ -33,7 +114,7 @@ SLAMPipeline::SLAMPipeline(const std::string& slam_registration, const std::stri
 
 // -----------------------------------------------------------------------------
 
-void SLAMPipeline::signalHandler(int signal) {
+void SlamPipeline::signalHandler(int signal) {
     if (signal == SIGINT || signal == SIGTERM) {
         running_.store(false, std::memory_order_release);
         globalCV_.notify_all();
@@ -42,8 +123,8 @@ void SLAMPipeline::signalHandler(int signal) {
 
 // -----------------------------------------------------------------------------
 
-void SLAMPipeline::setThreadAffinity(const std::vector<int>& coreIDs) {
-    if (coreIDs.empty()) {return;}
+void SlamPipeline::setThreadAffinity(const std::vector<int>& coreIDs) {
+    if (coreIDs.empty()) { return; }
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
     const unsigned int maxCores = std::thread::hardware_concurrency();
@@ -55,20 +136,17 @@ void SLAMPipeline::setThreadAffinity(const std::vector<int>& coreIDs) {
             validCores |= (1 << coreID);
         }
     }
-    if (!validCores) {
-            return;
-        }
+    if (!validCores) { return; }
 
     if (sched_setaffinity(0, sizeof(cpu_set_t), &cpuset) != 0) {
-        running_.store(false); // Optionally terminate
+        running_.store(false);
     }
 }
 
 // -----------------------------------------------------------------------------
 
-void SLAMPipeline::processLogQueue(const std::string& filename, const std::vector<int>& allowedCores) {
-    setThreadAffinity(allowedCores); // Pin logging thread to specified cores
-
+void SlamPipeline::processLogQueue(const std::string& filename, const std::vector<int>& allowedCores) {
+    setThreadAffinity(allowedCores);
     std::ofstream outfile(filename);
     if (!outfile.is_open()) {
         auto now = std::chrono::system_clock::now();
@@ -76,7 +154,10 @@ void SLAMPipeline::processLogQueue(const std::string& filename, const std::vecto
         std::ostringstream oss;
         oss << "[" << std::put_time(std::gmtime(&now_time_t), "%Y-%m-%dT%H:%M:%SZ") << "] "
             << "[ERROR] failed to open file " << filename << " for writing.\n";
-        std::cerr << oss.str(); // Fallback to cerr if file cannot be opened
+        std::cerr << oss.str();
+#ifdef DEBUG
+        logMessage("ERROR", oss.str());
+#endif
         return;
     }
 
@@ -104,17 +185,15 @@ void SLAMPipeline::processLogQueue(const std::string& filename, const std::vecto
     }
     int finalDrops = dropped_logs_.load(std::memory_order_relaxed);
     if (finalDrops > lastReportedDrops) {
-
         outfile << "[LOGGING] Final report: " << (finalDrops - lastReportedDrops) << " log messages dropped.\n";
     }
-
-    outfile.flush(); // Ensure data is written
+    outfile.flush();
     outfile.close();
 }
 
 // -----------------------------------------------------------------------------
 
-void SLAMPipeline::runOusterLidarListenerSingleReturn(boost::asio::io_context& ioContext, udp_socket::UdpSocketConfig udp_config, const std::vector<int>& allowedCores) {
+void SlamPipeline::runOusterLidarListenerSingleReturn(boost::asio::io_context& ioContext, udp_socket::UdpSocketConfig udp_config, const std::vector<int>& allowedCores) {
     setThreadAffinity(allowedCores);
     running_.store(true, std::memory_order_release);
 
@@ -246,7 +325,7 @@ void SLAMPipeline::runOusterLidarListenerSingleReturn(boost::asio::io_context& i
 
 // -----------------------------------------------------------------------------
 
-void SLAMPipeline::runOusterLidarListenerLegacy(boost::asio::io_context& ioContext, udp_socket::UdpSocketConfig udp_config, const std::vector<int>& allowedCores) {
+void SlamPipeline::runOusterLidarListenerLegacy(boost::asio::io_context& ioContext, udp_socket::UdpSocketConfig udp_config, const std::vector<int>& allowedCores) {
     setThreadAffinity(allowedCores);
     running_.store(true, std::memory_order_release);
 
@@ -378,7 +457,7 @@ void SLAMPipeline::runOusterLidarListenerLegacy(boost::asio::io_context& ioConte
 
 // -----------------------------------------------------------------------------
 
-void SLAMPipeline::runGNSSID20Listener(boost::asio::io_context& ioContext, udp_socket::UdpSocketConfig udp_config, const std::vector<int>& allowedCores) {
+void SlamPipeline::runGNSSID20Listener(boost::asio::io_context& ioContext, udp_socket::UdpSocketConfig udp_config, const std::vector<int>& allowedCores) {
     setThreadAffinity(allowedCores);
     running_.store(true, std::memory_order_release);
 
@@ -429,12 +508,12 @@ void SLAMPipeline::runGNSSID20Listener(boost::asio::io_context& ioContext, udp_s
                                        std::to_string(new_frame.unixTime));
 #endif
                         }
-                        if (!gnss_buffer_.push(new_frame)) {
-#ifdef DEBUG
-                            logMessage("WARNING", "GNSS Listener: SPSC ID20 buffer push failed for UnixTime " +
-                                       std::to_string(new_frame.unixTime));
-#endif
-                        }
+//                         if (!gnss_buffer_.push(new_frame)) {
+// #ifdef DEBUG
+//                             logMessage("WARNING", "GNSS Listener: SPSC ID20 buffer push failed for UnixTime " +
+//                                        std::to_string(new_frame.unixTime));
+// #endif
+//                         }
                     }
 #ifdef DEBUG
                     std::ostringstream oss;
@@ -522,7 +601,7 @@ void SLAMPipeline::runGNSSID20Listener(boost::asio::io_context& ioContext, udp_s
 
 // -----------------------------------------------------------------------------
 
-void SLAMPipeline::dataAlignmentID20(const std::vector<int>& allowedCores) {
+void SlamPipeline::dataAlignmentID20(const std::vector<int>& allowedCores) {
     setThreadAffinity(allowedCores);
 
     constexpr size_t max_empty_buffer_count = 100; // Wait if no data for too long
@@ -666,8 +745,7 @@ void SLAMPipeline::dataAlignmentID20(const std::vector<int>& allowedCores) {
 
 // -----------------------------------------------------------------------------
 
-void SLAMPipeline::runLoStateEstimation(const std::vector<int>& allowedCores)
-{
+void SlamPipeline::runLoStateEstimation(const std::vector<int>& allowedCores) {
     setThreadAffinity(allowedCores);
 
     // OpenMP thread limit based on allowed cores
@@ -784,9 +862,12 @@ void SLAMPipeline::runLoStateEstimation(const std::vector<int>& allowedCores)
                     }
                 }
             }
+            auto raw_points_ts = convertToRclcppTime(currDataFrame.pointcloud.front().timestamp);
+            auto raw_points_msg = toPointCloud2(currDataFrame.pointcloud, "body", raw_points_ts);
+            raw_points_publisher_->publish(raw_points_msg);
 
             // 5. Register frame with odometry
-            const auto summary = odometry_->registerFrame(currDataFrame);
+            // const auto summary = odometry_->registerFrame(currDataFrame);
 
 #ifdef DEBUG
             // Stop timer
@@ -797,16 +878,16 @@ void SLAMPipeline::runLoStateEstimation(const std::vector<int>& allowedCores)
             logMessage("TIMER", oss_timer.str());
 #endif
 
-            if (!summary.success) {
-#ifdef DEBUG
-                logMessage("WARNING", "runLoStateEstimation: State estimation failed.");
-#endif
-            } else {
-#ifdef DEBUG
-                logMessage("LOGGING", "runLoStateEstimation: Successfully registered frame with timestamp " +
-                           std::to_string(currDataFrame.timestamp));
-#endif
-            }
+//             if (!summary.success) {
+// #ifdef DEBUG
+//                 logMessage("WARNING", "runLoStateEstimation: State estimation failed.");
+// #endif
+//             } else {
+// #ifdef DEBUG
+//                 logMessage("LOGGING", "runLoStateEstimation: Successfully registered frame with timestamp " +
+//                            std::to_string(currDataFrame.timestamp));
+// #endif
+//             }
 
         } catch (const std::exception& e) {
 #ifdef DEBUG
@@ -823,160 +904,3 @@ void SLAMPipeline::runLoStateEstimation(const std::vector<int>& allowedCores)
 #endif
 }
 
-// -----------------------------------------------------------------------------
-
-void SLAMPipeline::runGroundTruthEstimation(const std::string& filename, const std::vector<int>& allowedCores) {
-    setThreadAffinity(allowedCores);
-
-    // Open output file
-    std::ofstream outfile(filename);
-    if (!outfile.is_open()) {
-        auto now = std::chrono::system_clock::now();
-        auto now_time_t = std::chrono::system_clock::to_time_t(now);
-        std::ostringstream oss;
-        oss << "[" << std::put_time(std::gmtime(&now_time_t), "%Y-%m-%dT%H:%M:%SZ") << "] "
-            << "[ERROR] failed to open file " << filename << " for writing.";
-        std::cerr << oss.str();
-#ifdef DEBUG
-        logMessage("ERROR", oss.str());
-#endif
-        return;
-    }
-
-    constexpr size_t max_empty_buffer_count = 100; // Wait if no data for too long
-    size_t consecutive_empty_buffer_count = 0;
-
-    while (running_.load(std::memory_order_acquire)) {
-        try {
-            // Pop GNSS frame from buffer
-            decodeNav::DataFrameID20 currFrame;
-            if (!gnss_buffer_.pop(currFrame)) {
-
-                // Handle buffer starvation
-                if (++consecutive_empty_buffer_count >= max_empty_buffer_count) {
-#ifdef DEBUG
-                    logMessage("WARNING", "runGroundTruthEstimation: No GNSS data available after multiple attempts.");
-#endif
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                    continue;
-                }
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                continue;
-            }
-            consecutive_empty_buffer_count = 0; // Reset on successful pop
-
-            // Validate GNSS data
-            if (currFrame.unixTime <= 0) {
-#ifdef DEBUG
-                std::ostringstream oss;
-                oss << "runGroundTruthEstimation: Invalid GNSS timestamp: " << currFrame.unixTime;
-                logMessage("ERROR", oss.str());
-#endif
-                continue;
-            }
-
-            // Process frame
-            Eigen::Matrix4d Tb2m = Eigen::Matrix4d::Identity();
-            if (is_firstFrame_) {
-                // Handle the first frame
-                Eigen::Matrix3d Rb2m = navMath::Cb2n(navMath::getQuat(
-                    currFrame.roll, currFrame.pitch, currFrame.yaw));
-                // Eigen::Matrix3d Rm2b = Rb2m.transpose();
-                Tb2m.block<3, 3>(0, 0) = Rb2m;
-
-                originFrame_ = currFrame;
-                is_firstFrame_ = false;
-
-                // Output origin LLA and transformation
-                steam::traj::Time Time(currFrame.unixTime);
-                outfile << std::fixed << std::setprecision(12) << Time.nanosecs() << " "
-                        << currFrame.latitude << " " << currFrame.longitude << " " << currFrame.altitude << " "
-                        << currFrame.roll << " " << currFrame.pitch << " " << currFrame.yaw << "\n";
-                outfile << std::fixed << std::setprecision(12) << Time.nanosecs() << " "
-                        << Tb2m(0, 0) << " " << Tb2m(0, 1) << " " << Tb2m(0, 2) << " " << Tb2m(0, 3) << " "
-                        << Tb2m(1, 0) << " " << Tb2m(1, 1) << " " << Tb2m(1, 2) << " " << Tb2m(1, 3) << " "
-                        << Tb2m(2, 0) << " " << Tb2m(2, 1) << " " << Tb2m(2, 2) << " " << Tb2m(2, 3) << " "
-                        << Tb2m(3, 0) << " " << Tb2m(3, 1) << " " << Tb2m(3, 2) << " " << Tb2m(3, 3) << "\n";
-
-#ifdef DEBUG
-                std::ostringstream oss;
-                oss << "runGroundTruthEstimation (ORIGIN): " << Time.nanosecs() << " "
-                    << currFrame.latitude << " " << currFrame.longitude << " " << currFrame.altitude << " "
-                    << currFrame.roll << " " << currFrame.pitch << " " << currFrame.yaw;
-                logMessage("LOGGING", oss.str());
-#endif
-            } else {
-                // Handle subsequent frames
-                Eigen::Matrix3d Rb2m = navMath::Cb2n(navMath::getQuat(
-                    currFrame.roll, currFrame.pitch, currFrame.yaw));
-                Eigen::Vector3d tb2m = navMath::LLA2NED(
-                    currFrame.latitude, currFrame.longitude, currFrame.altitude,
-                    originFrame_.latitude, originFrame_.longitude, originFrame_.altitude);
-                Eigen::Matrix3d Rm2b = Rb2m.transpose();
-                Eigen::Vector3d tm2b = -Rm2b * tb2m;
-                Tb2m.block<3, 3>(0, 0) = Rb2m;
-                Tb2m.block<3, 1>(0, 3) = tb2m;
-
-                Eigen::Matrix4d Tm2b = Eigen::Matrix4d::Identity();
-                Tm2b.block<3, 3>(0, 0) = Rm2b;
-                Tm2b.block<3, 1>(0, 3) = tm2b;
-
-                odometry_->T_i_r_gt_poses.push_back(Tm2b);
-
-                // Output transformation
-                steam::traj::Time Time(currFrame.unixTime);
-                outfile << std::fixed << std::setprecision(12) << Time.nanosecs() << " "
-                        << Tb2m(0, 0) << " " << Tb2m(0, 1) << " " << Tb2m(0, 2) << " " << Tb2m(0, 3) << " "
-                        << Tb2m(1, 0) << " " << Tb2m(1, 1) << " " << Tb2m(1, 2) << " " << Tb2m(1, 3) << " "
-                        << Tb2m(2, 0) << " " << Tb2m(2, 1) << " " << Tb2m(2, 2) << " " << Tb2m(2, 3) << " "
-                        << Tb2m(3, 0) << " " << Tb2m(3, 1) << " " << Tb2m(3, 2) << " " << Tb2m(3, 3) << "\n";
-
-#ifdef DEBUG
-                std::ostringstream oss;
-                oss << "runGroundTruthEstimation: Registered pose at timestamp " << Time.nanosecs();
-                logMessage("LOGGING", oss.str());
-#endif
-            }
-
-            // Periodic flush to ensure data is written
-            if (outfile.tellp() > 1024 * 1024) { // Flush every ~1MB
-                outfile.flush();
-                if (!outfile.good()) {
-#ifdef DEBUG
-                    logMessage("ERROR", "runGroundTruthEstimation: Failed to write to file " + filename);
-#endif
-                    running_.store(false, std::memory_order_release);
-                    break;
-                }
-            }
-
-        } catch (const std::exception& e) {
-#ifdef DEBUG
-            std::ostringstream oss;
-            oss << "runGroundTruthEstimation: Exception occurred: " << e.what();
-            logMessage("ERROR", oss.str());
-#endif
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
-    }
-
-    // Final flush and close
-    outfile.flush();
-    if (!outfile.good()) {
-#ifdef DEBUG
-        logMessage("ERROR", "runGroundTruthEstimation: Failed to write final data to file " + filename);
-#endif
-    }
-    outfile.close();
-#ifdef DEBUG
-    logMessage("LOGGING", "runGroundTruthEstimation: Stopped");
-#endif
-}
-
-// -----------------------------------------------------------------------------
-
-void SLAMPipeline::saveOdometryResults(const std::string& timestamp) {
-    if (odometry_) {
-        odometry_->getResults(timestamp);
-    }
-}

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(slam LANGUAGES CXX)
+project(slam_pipeline_ros2 LANGUAGES CXX)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Compiler flags
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -fPIC") # Add -fPIC for PIE compatibility
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -fPIC")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ffast-math -march=native")
 # set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0 -DDEBUG")
 
@@ -16,7 +16,16 @@ if(POLICY CMP0072)
     cmake_policy(SET CMP0072 NEW)
 endif()
 
-# Find dependencies
+# Find ROS2 dependencies
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(pcl_ros REQUIRED)
+find_package(pcl_conversions REQUIRED)
+
+# Find other dependencies
 set(Open3D_DIR "/usr/local/lib/cmake/Open3D/" CACHE PATH "Path to Open3D CMake config")
 find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(nlohmann_json REQUIRED)
@@ -30,9 +39,8 @@ find_package(steam REQUIRED)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
+# Find cpuid library
 find_library(CPUID_LIBRARY NAMES cpuid libcpuid)
-
-# Check for CPUID
 if(CPUID_LIBRARY)
     message(STATUS "Found cpuid library: ${CPUID_LIBRARY}")
 else()
@@ -109,15 +117,20 @@ foreach(GROUP ${SOURCE_GROUPS})
 endforeach()
 
 # Create core library
-add_library(slam_core STATIC ${ALL_SOURCES}) # Changed to STATIC for simpler linking
-target_compile_options(slam_core PRIVATE -fPIC) # Ensure position-independent code
-
-# Set include directories and link libraries for slam_core
+add_library(slam_core STATIC ${ALL_SOURCES})
+target_compile_options(slam_core PRIVATE -fPIC)
 target_include_directories(slam_core
     PUBLIC
         ${PROJECT_INCLUDE_DIRS}
 )
-
+ament_target_dependencies(slam_core
+    rclcpp
+    sensor_msgs
+    nav_msgs
+    tf2_ros
+    pcl_ros
+    pcl_conversions
+)
 target_link_libraries(slam_core
     PUBLIC
         Eigen3::Eigen
@@ -133,14 +146,21 @@ target_link_libraries(slam_core
         $<$<BOOL:${CPUID_LIBRARY}>:${CPUID_LIBRARY}>
 )
 
-# Create executable
-add_executable(slam src/main.cpp)
-target_include_directories(slam
+# Create ROS2 executable
+add_executable(ros2_slam_node src/rclcpp.cpp)
+target_include_directories(ros2_slam_node
     PUBLIC
         ${PROJECT_INCLUDE_DIRS}
 )
-# Link slam against slam_core and its dependencies
-target_link_libraries(slam
+ament_target_dependencies(ros2_slam_node
+    rclcpp
+    sensor_msgs
+    nav_msgs
+    tf2_ros
+    pcl_ros
+    pcl_conversions
+)
+target_link_libraries(ros2_slam_node
     PUBLIC
         slam_core
         Eigen3::Eigen
@@ -156,5 +176,13 @@ target_link_libraries(slam
         $<$<BOOL:${CPUID_LIBRARY}>:${CPUID_LIBRARY}>
 )
 
+# Install targets
+install(TARGETS ros2_slam_node
+    DESTINATION lib/${PROJECT_NAME}
+)
+
 # Generate compile commands for IDEs
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# ROS2 package setup
+ament_package()
