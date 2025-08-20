@@ -59,7 +59,7 @@ class SlamPipeline {
                             const std::string& lidar_json_path,
                             const lidarDecode::OusterLidarCallback::LidarTransformPreset& T_preset,
                             uint16_t N, 
-                            rclcpp::Node::SharedPtr node = nullptr,
+                            rclcpp::Node::SharedPtr node,
                             rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_publisher,
                             rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr raw_points_publisher,
                             rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr sampled_points_publisher,
