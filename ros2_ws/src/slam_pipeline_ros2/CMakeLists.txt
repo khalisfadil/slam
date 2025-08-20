@@ -18,12 +18,10 @@ endif()
 
 # Find ROS2 dependencies
 find_package(ament_cmake REQUIRED)
-find_package(rclcppREQUIRED)
+find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
-find_package(pcl_ros REQUIRED)
-find_package(pcl_conversions REQUIRED)
 
 # Find other dependencies
 set(Open3D_DIR "/usr/local/lib/cmake/Open3D/" CACHE PATH "Path to Open3D CMake config")
@@ -126,8 +124,6 @@ target_link_libraries(slam_core
         sensor_msgs::sensor_msgs
         nav_msgs::nav_msgs
         tf2_ros::tf2_ros
-        pcl_ros::pcl_ros
-        pcl_conversions::pcl_conversions
         Eigen3::Eigen
         nlohmann_json::nlohmann_json
         OpenMP::OpenMP_CXX
@@ -151,8 +147,6 @@ target_link_libraries(ros2_slam_node
         sensor_msgs::sensor_msgs
         nav_msgs::nav_msgs
         tf2_ros::tf2_ros
-        pcl_ros::pcl_ros
-        pcl_conversions::pcl_conversions
         Eigen3::Eigen
         nlohmann_json::nlohmann_json
         OpenMP::OpenMP_CXX
