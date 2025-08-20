@@ -91,18 +91,6 @@ class SlamPipeline {
         rclcpp::Time convertToRclcppTime(double timestamp_seconds);
 
     private:
-            
-        // ROS2 node and publishers
-        rclcpp::Node::SharedPtr node_;
-        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_publisher_;
-        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr raw_points_publisher_;
-        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr sampled_points_publisher_;
-        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr map_points_publisher_;
-
-        
-        std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
-        std::unique_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
-
         // runGroundTruthEstimation
         stateestimate::Odometry::Ptr odometry_;
         const size_t GT_SIZE_COMPASS = 120000;
@@ -110,12 +98,12 @@ class SlamPipeline {
         decodeNav::DataFrameID20 originFrame_;
         Eigen::Matrix3d prev_Rb2m_;
 
-        // runLioStateEstimation
-        bool init_ = false;
-
         // runOusterLidarListener
         lidarDecode::OusterLidarCallback lidarCallback_;
         uint16_t frame_id_ = 0;
+
+        // runLioStateEstimation
+        bool init_ = false;
 
         // runGNSSListener
         decodeNav::GnssCompassCallback gnssCallback_;
@@ -125,5 +113,14 @@ class SlamPipeline {
 
         // runOusterLidarIMUListener
         uint64_t Normalized_Timestamp_s_ = 0.0;
+
+        // ROS2 node and publishers
+        rclcpp::Node::SharedPtr node_;
+        rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_publisher_;
+        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr raw_points_publisher_;
+        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr sampled_points_publisher_;
+        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr map_points_publisher_;
+        std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+        std::unique_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
 
 };
