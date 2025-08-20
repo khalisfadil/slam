@@ -118,12 +118,9 @@ endforeach()
 add_library(slam_core STATIC ${ALL_SOURCES})
 target_compile_options(slam_core PRIVATE -fPIC)
 target_include_directories(slam_core PUBLIC ${PROJECT_INCLUDE_DIRS})
+ament_target_dependencies(slam_core PUBLIC rclcpp sensor_msgs nav_msgs tf2_ros)
 target_link_libraries(slam_core
     PUBLIC
-        rclcpp::rclcpp
-        sensor_msgs::sensor_msgs__cpp
-        nav_msgs::nav_msgs__cpp
-        tf2_ros::tf2_ros
         Eigen3::Eigen
         nlohmann_json::nlohmann_json
         OpenMP::OpenMP_CXX
@@ -140,13 +137,10 @@ target_link_libraries(slam_core
 # Create ROS2 executable
 add_executable(ros2_slam_node src/rclcpp.cpp)
 target_include_directories(ros2_slam_node PUBLIC ${PROJECT_INCLUDE_DIRS})
+ament_target_dependencies(ros2_slam_node PUBLIC rclcpp sensor_msgs nav_msgs tf2_ros)
 target_link_libraries(ros2_slam_node
     PUBLIC
         slam_core
-        rclcpp::rclcpp
-        sensor_msgs::sensor_msgs__cpp
-        nav_msgs::nav_msgs__cpp
-        tf2_ros::tf2_ros
         Eigen3::Eigen
         nlohmann_json::nlohmann_json
         OpenMP::OpenMP_CXX
