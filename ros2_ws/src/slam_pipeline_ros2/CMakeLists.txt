@@ -18,10 +18,12 @@ endif()
 
 # Find ROS2 dependencies
 find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
+find_package(rclcppREQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(pcl_ros REQUIRED)
+find_package(pcl_conversions REQUIRED)
 
 # Find other dependencies
 set(Open3D_DIR "/usr/local/lib/cmake/Open3D/" CACHE PATH "Path to Open3D CMake config")
@@ -117,18 +119,15 @@ endforeach()
 # Create core library
 add_library(slam_core STATIC ${ALL_SOURCES})
 target_compile_options(slam_core PRIVATE -fPIC)
-target_include_directories(slam_core
-    PUBLIC
-        ${PROJECT_INCLUDE_DIRS}
-)
-ament_target_dependencies(slam_core
-    rclcpp
-    sensor_msgs
-    nav_msgs
-    tf2_ros
-)
+target_include_directories(slam_core PUBLIC ${PROJECT_INCLUDE_DIRS})
 target_link_libraries(slam_core
     PUBLIC
+        rclcpp::rclcpp
+        sensor_msgs::sensor_msgs
+        nav_msgs::nav_msgs
+        tf2_ros::tf2_ros
+        pcl_ros::pcl_ros
+        pcl_conversions::pcl_conversions
         Eigen3::Eigen
         nlohmann_json::nlohmann_json
         OpenMP::OpenMP_CXX
@@ -144,19 +143,16 @@ target_link_libraries(slam_core
 
 # Create ROS2 executable
 add_executable(ros2_slam_node src/rclcpp.cpp)
-target_include_directories(ros2_slam_node
-    PUBLIC
-        ${PROJECT_INCLUDE_DIRS}
-)
-ament_target_dependencies(ros2_slam_node
-    rclcpp
-    sensor_msgs
-    nav_msgs
-    tf2_ros
-)
+target_include_directories(ros2_slam_node PUBLIC ${PROJECT_INCLUDE_DIRS})
 target_link_libraries(ros2_slam_node
     PUBLIC
         slam_core
+        rclcpp::rclcpp
+        sensor_msgs::sensor_msgs
+        nav_msgs::nav_msgs
+        tf2_ros::tf2_ros
+        pcl_ros::pcl_ros
+        pcl_conversions::pcl_conversions
         Eigen3::Eigen
         nlohmann_json::nlohmann_json
         OpenMP::OpenMP_CXX
