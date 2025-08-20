@@ -10,3 +10,15 @@
 [submodule "extern/LidarDecode"]
 	path = extern/LidarDecode
 	url = https://github.com/khalisfadil/LidarDecode.git
+[submodule "ros2_ws/src/slam_pipeline_ros2/extern/state_estimation"]
+	path = ros2_ws/src/slam_pipeline_ros2/extern/state_estimation
+	url = https://github.com/khalisfadil/state_estimation.git
+[submodule "ros2_ws/src/slam_pipeline_ros2/extern/GNSSKompass"]
+	path = ros2_ws/src/slam_pipeline_ros2/extern/GNSSKompass
+	url = https://github.com/khalisfadil/GNSSKompass.git
+[submodule "ros2_ws/src/slam_pipeline_ros2/extern/LidarDecode"]
+	path = ros2_ws/src/slam_pipeline_ros2/extern/LidarDecode
+	url = https://github.com/khalisfadil/LidarDecode.git
+[submodule "ros2_ws/src/slam_pipeline_ros2/3rdparty/robin-map"]
+	path = ros2_ws/src/slam_pipeline_ros2/3rdparty/robin-map
+	url = https://github.com/Tessil/robin-map.git
