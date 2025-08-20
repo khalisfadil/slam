@@ -8,7 +8,7 @@
 #include <sstream>
 #include <fstream>
 #include <nlohmann/json.hpp>
-#include "rclcpppipeline.hpp"
+#include <rclcpppipeline.hpp>
 
 class SlamPipelineNode : public rclcpp::Node {
     public: 
