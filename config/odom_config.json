@@ -2,13 +2,13 @@
     "output_dir": "./outputs",
     "odometry_options": {
 
-        "init_num_frames": 4,
-        "init_voxel_size": 0.5,
-        "voxel_size": 1,
-        "init_sample_voxel_size": 0.5,
-        "sample_voxel_size": 1,
+        "init_num_frames": 10,
+        "init_voxel_size": 0.4,
+        "voxel_size": 0.8,
+        "init_sample_voxel_size": 0.4,
+        "sample_voxel_size": 0.8,
 
-        "size_voxel_map": 1.5,
+        "size_voxel_map": 1,
         "min_distance_points": 0.5,
         "max_num_points_in_voxel": 20,
         "max_distance": 500.0,
@@ -17,8 +17,8 @@
         "voxel_lifetime": 10,
 
         "num_iters_icp": 10,
-        "threshold_orientation_norm": 0.00001,
-        "threshold_translation_norm": 0.0001,
+        "threshold_orientation_norm": 0.0001,
+        "threshold_translation_norm": 0.001,
         "min_number_keypoints": 50,
 
         "sequential_threshold_odom": 1000,
@@ -29,8 +29,8 @@
 
         "Tb2s": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
 
-        "ad_diag": [10, 10, 10, 10, 10, 10],
-        "qc_diag": [10, 10, 10, 10, 10, 10],
+        "ad_diag": [100, 100, 100, 100, 100, 100],
+        "qc_diag": [100, 100, 100, 100, 100, 100],
         "num_extra_states": 1,
 
         "power_planarity": 2.0,
