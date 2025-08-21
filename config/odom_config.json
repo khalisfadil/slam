@@ -46,10 +46,10 @@
         "rv_loss_threshold": 0.05,
         
         "verbose": false,
-        "max_iterations": 10,
+        "max_iterations": 20,
         "sequential_threshold" : 1000,
         "num_threads": 16,
-        "delay_adding_points": 10,
+        "delay_adding_points": 6,
         "use_final_state_value": false,
         "break_icp_early": true,
         "use_line_search": true,
