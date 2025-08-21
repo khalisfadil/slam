@@ -143,8 +143,8 @@ int main() {
                 return EXIT_FAILURE;
         }
 
-        threads.emplace_back([&]() { pipeline.runGNSSID20Listener(ioContextPoints, config_compass, std::vector<int>{1}); });
-        threads.emplace_back([&]() { pipeline.dataAlignmentID20(std::vector<int>{2}); });
+        // threads.emplace_back([&]() { pipeline.runGNSSID20Listener(ioContextPoints, config_compass, std::vector<int>{1}); });
+        // threads.emplace_back([&]() { pipeline.dataAlignmentID20(std::vector<int>{2}); });
         // threads.emplace_back([&]() { pipeline.runLoStateEstimation(std::vector<int>{3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18}); });
         // threads.emplace_back([&]() { pipeline.runGroundTruthEstimation(gt_filename, std::vector<int>{19}); });
         // threads.emplace_back([&]() { pipeline.processLogQueue(log_filename,std::vector<int>{20}); });
