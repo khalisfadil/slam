@@ -94,6 +94,9 @@ class SlamPipelineNode : public rclcpp::Node {
                 map_points_publisher_,
                 std::move(tf_broadcaster_),
                 std::move(tf_static_broadcaster_));
+                
+            //Initialize io_context_ BEFORE creating threads that use it.
+            io_context_ = std::make_unique<boost::asio::io_context>();
 
             // Update lidar_packet_size based on profile
             if (udp_profile_lidar == "RNG19_RFL8_SIG16_NIR16") {
