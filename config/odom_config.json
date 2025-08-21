@@ -2,23 +2,23 @@
     "output_dir": "./outputs",
     "odometry_options": {
 
-        "init_num_frames": 4,
-        "init_voxel_size": 0.8,
+        "init_num_frames": 20,
+        "init_voxel_size": 0.5,
         "voxel_size": 1,
-        "init_sample_voxel_size": 0.8,
+        "init_sample_voxel_size": 0.5,
         "sample_voxel_size": 1,
 
-        "size_voxel_map": 1.5,
-        "min_distance_points": 0.5,
-        "max_num_points_in_voxel": 10,
+        "size_voxel_map": 1,
+        "min_distance_points": 0.1,
+        "max_num_points_in_voxel": 20,
         "max_distance": 500.0,
         "min_number_neighbors": 5,
         "max_number_neighbors": 20,
         "voxel_lifetime": 20,
 
         "num_iters_icp": 20,
-        "threshold_orientation_norm": 0.00001,
-        "threshold_translation_norm": 0.0001,
+        "threshold_orientation_norm": 0.0001,
+        "threshold_translation_norm": 0.001,
         "min_number_keypoints": 50,
 
         "sequential_threshold_odom": 1000,
@@ -29,9 +29,9 @@
 
         "Tb2s": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
 
-        "ad_diag": [10, 10, 10, 10, 10, 10],
-        "qc_diag": [10, 10, 10, 10, 10, 10],
-        "num_extra_states": 0,
+        "ad_diag": [5, 5, 5, 50, 50, 50],
+        "qc_diag": [50, 50, 50, 5, 5, 5],
+        "num_extra_states": 1,
 
         "power_planarity": 2.0,
         "p2p_max_dist": 1.0,
@@ -70,9 +70,9 @@
         "p0_bias_gyro": 1e-6,
         "pk_bias_gyro": 1e-4,
         "q_bias_gyro": 1e-4,
-        "acc_loss_func": "CAUCHY",
+        "acc_loss_func": "L2",
         "acc_loss_sigma": 1.0,
-        "gyro_loss_func": "CAUCHY",
+        "gyro_loss_func": "L2",
         "gyro_loss_sigma": 1.0,
         
         "T_mi_init_only": true,
