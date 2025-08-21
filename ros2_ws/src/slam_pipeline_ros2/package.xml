@@ -12,7 +12,6 @@
   <depend>nlohmann-json-dev</depend>
   <depend>libboost-system-dev</depend>
   <depend>libboost-thread-dev</depend>
-  <depend>open3d</depend>
   <depend>libopenmp-dev</depend>
   <depend>lgmath</depend>
   <depend>steam</depend>
