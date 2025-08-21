@@ -119,29 +119,29 @@ int main() {
             profile = LidarProfile::UNKNOWN;
         }
 
-        switch (profile) {
-            case LidarProfile::RNG19_RFL8_SIG16_NIR16:
-#ifdef DEBUG
-                std::cout << "[Main] Detected RNG19_RFL8_SIG16_NIR16 lidar udp profile." << std::endl;
-#endif
-                // Use default parameters or adjust if needed
-                threads.emplace_back([&]() { pipeline.runOusterLidarListenerSingleReturn(ioContextPoints, config_lidar, std::vector<int>{0}); });
-                break;
+//         switch (profile) {
+//             case LidarProfile::RNG19_RFL8_SIG16_NIR16:
+// #ifdef DEBUG
+//                 std::cout << "[Main] Detected RNG19_RFL8_SIG16_NIR16 lidar udp profile." << std::endl;
+// #endif
+//                 // Use default parameters or adjust if needed
+//                 threads.emplace_back([&]() { pipeline.runOusterLidarListenerSingleReturn(ioContextPoints, config_lidar, std::vector<int>{0}); });
+//                 break;
 
-            case LidarProfile::LEGACY:
-#ifdef DEBUG
-                std::cout << "[Main] Detected LEGACY lidar udp profile." << std::endl;
-#endif
-                // Example: Adjust buffer size or port for LEGACY mode if needed
-                // bufferSize = 16384; // Example adjustment
-                threads.emplace_back([&]() { pipeline.runOusterLidarListenerLegacy(ioContextPoints, config_lidar, std::vector<int>{0}); });
-                break;
+//             case LidarProfile::LEGACY:
+// #ifdef DEBUG
+//                 std::cout << "[Main] Detected LEGACY lidar udp profile." << std::endl;
+// #endif
+//                 // Example: Adjust buffer size or port for LEGACY mode if needed
+//                 // bufferSize = 16384; // Example adjustment
+//                 threads.emplace_back([&]() { pipeline.runOusterLidarListenerLegacy(ioContextPoints, config_lidar, std::vector<int>{0}); });
+//                 break;
 
-            case LidarProfile::UNKNOWN:
-            default:
-                std::cerr << "[Main] Error: Unknown or unsupported udp_profile_lidar: " << udp_profile_lidar << std::endl;
-                return EXIT_FAILURE;
-        }
+//             case LidarProfile::UNKNOWN:
+//             default:
+//                 std::cerr << "[Main] Error: Unknown or unsupported udp_profile_lidar: " << udp_profile_lidar << std::endl;
+//                 return EXIT_FAILURE;
+//         }
 
         // threads.emplace_back([&]() { pipeline.runGNSSID20Listener(ioContextPoints, config_compass, std::vector<int>{1}); });
         // threads.emplace_back([&]() { pipeline.dataAlignmentID20(std::vector<int>{2}); });
