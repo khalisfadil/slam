@@ -3,7 +3,6 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/static_transform_broadcaster.h>
-
 #include <chrono>
 #include <sstream>
 #include <fstream>
@@ -11,9 +10,9 @@
 #include <rclcpppipeline.hpp>
 
 class SlamPipelineNode : public rclcpp::Node {
-    public: 
+    public:
         SlamPipelineNode() : Node("slam_pipeline_node") {
-            // Publishers
+            // Initialize publishers and broadcasters
             raw_points_publisher_ = create_publisher<sensor_msgs::msg::PointCloud2>("/slam_raw_points", 2);
             sampled_points_publisher_ = create_publisher<sensor_msgs::msg::PointCloud2>("/slam_sampled_points", 2);
             map_points_publisher_ = create_publisher<sensor_msgs::msg::PointCloud2>("/slam_map_points", 2);
@@ -27,10 +26,10 @@ class SlamPipelineNode : public rclcpp::Node {
             std::stringstream ss;
             ss << std::put_time(std::gmtime(&utc_time), "%Y%m%d_%H%M%S");
             timestamp_ = ss.str();
-            std::string log_filename = "../report/log/log_report_" + timestamp_ + ".txt";
-            std::string gt_filename = "../report/gt/gt_report_" + timestamp_ + ".txt";
+        }
 
-            // JSON parsing (from main.cpp)
+        void init() {
+            // JSON parsing
             std::string lidar_json = "../config/2025047_1054_OS-2-128_122446000745.json";
             std::string config_json = "../config/odom_config.json";
             uint32_t lidar_packet_size = 24896;
@@ -56,7 +55,7 @@ class SlamPipelineNode : public rclcpp::Node {
                 udp_profile_lidar = metadata_["config_params"]["udp_profile_lidar"].get<std::string>();
                 udp_port_lidar_ = metadata_["config_params"]["udp_port_lidar"].get<uint16_t>();
                 udp_dest = metadata_["config_params"]["udp_dest"].get<std::string>();
-                } catch (const std::exception& e) {
+            } catch (const std::exception& e) {
                 RCLCPP_ERROR(this->get_logger(), "Error parsing JSON: %s", e.what());
                 throw;
             }
@@ -80,25 +79,26 @@ class SlamPipelineNode : public rclcpp::Node {
             config_compass_.ttl = std::nullopt;
             config_compass_.reuseAddress = true;
 
-            // Initialize pipeline with publishers
+            // Initialize io_context
+            io_context_ = std::make_unique<boost::asio::io_context>();
+
+            // Initialize pipeline
             pipeline_ = std::make_unique<SlamPipeline>(
                 "SLAM_LIDAR_ODOM",
                 config_json,
                 lidar_json,
                 lidarDecode::OusterLidarCallback::LidarTransformPreset::GEHLSDORF20250410,
                 4,
-                shared_from_this(),
+                shared_from_this(), // Safe to call here
                 odometry_publisher_,
                 raw_points_publisher_,
                 sampled_points_publisher_,
                 map_points_publisher_,
                 std::move(tf_broadcaster_),
                 std::move(tf_static_broadcaster_));
-                
-            //Initialize io_context_ BEFORE creating threads that use it.
-            io_context_ = std::make_unique<boost::asio::io_context>();
 
             // Update lidar_packet_size based on profile
+            std::string log_filename = "../report/log/log_report_" + timestamp_ + ".txt";
             if (udp_profile_lidar == "RNG19_RFL8_SIG16_NIR16") {
                 config_lidar_.bufferSize = 24832;
                 threads_.emplace_back([&]() { pipeline_->runOusterLidarListenerSingleReturn(*io_context_, config_lidar_, {0}); });
@@ -111,51 +111,48 @@ class SlamPipelineNode : public rclcpp::Node {
             }
 
             // Spawn threads
-            io_context_ = std::make_unique<boost::asio::io_context>();
             threads_.emplace_back([&]() { pipeline_->runGNSSID20Listener(*io_context_, config_compass_, {1}); });
             threads_.emplace_back([&]() { pipeline_->dataAlignmentID20({2}); });
-            threads_.emplace_back([&]() {pipeline_->runLoStateEstimation({3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18}); });
+            threads_.emplace_back([&]() { pipeline_->runLoStateEstimation({3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18}); });
             threads_.emplace_back([&]() { pipeline_->processLogQueue(log_filename, {20}); });
         }
 
         ~SlamPipelineNode() {
             SlamPipeline::running_.store(false, std::memory_order_release);
             SlamPipeline::globalCV_.notify_all();
-            io_context_->stop();
+            if (io_context_) {
+                io_context_->stop();
+            }
             for (auto& thread : threads_) {
                 if (thread.joinable()) {
                     thread.join();
                 }
             }
-
             RCLCPP_INFO(this->get_logger(), "All threads joined. Saved odometry results.");
         }
 
-        
     private:
         std::unique_ptr<SlamPipeline> pipeline_;
         std::unique_ptr<boost::asio::io_context> io_context_;
         std::vector<std::thread> threads_;
         std::string timestamp_;
-
         rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr raw_points_publisher_;
         rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr sampled_points_publisher_;
         rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr map_points_publisher_;
-
         rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_publisher_;
         std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
         std::unique_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
-
         udp_socket::UdpSocketConfig config_lidar_, config_compass_;
-        uint16_t udp_port_lidar_;    
+        uint16_t udp_port_lidar_;
 };
 
 int main(int argc, char** argv) {
-  rclcpp::init(argc, argv);
-  auto node = std::make_shared<SlamPipelineNode>();
-  rclcpp::executors::MultiThreadedExecutor executor;
-  executor.add_node(node);
-  executor.spin();
-  rclcpp::shutdown();
-  return 0;
+    rclcpp::init(argc, argv);
+    auto node = std::make_shared<SlamPipelineNode>();
+    node->init(); // Initialize after construction
+    rclcpp::executors::MultiThreadedExecutor executor;
+    executor.add_node(node);
+    executor.spin();
+    rclcpp::shutdown();
+    return 0;
 }
