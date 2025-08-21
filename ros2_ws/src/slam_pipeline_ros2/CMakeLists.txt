@@ -11,11 +11,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -fPIC -Wno-unused-but-set-
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ffast-math -march=native")
 # set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0 -DDEBUG")
 
-# Silence deprecated policy warning from Open3D
-if(POLICY CMP0072)
-    cmake_policy(SET CMP0072 NEW)
-endif()
-
 # Find ROS2 dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -24,11 +19,11 @@ find_package(nav_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 
 # Find other dependencies
-set(Open3D_DIR "/usr/local/lib/cmake/Open3D/" CACHE PATH "Path to Open3D CMake config")
+#set(Open3D_DIR "/usr/local/lib/cmake/Open3D/" CACHE PATH "Path to Open3D CMake config")
 find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(nlohmann_json REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system thread)
-find_package(Open3D REQUIRED)
+#find_package(Open3D REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(lgmath REQUIRED)
 find_package(steam REQUIRED)
@@ -126,7 +121,7 @@ target_link_libraries(slam_core
         OpenMP::OpenMP_CXX
         Boost::system
         Boost::thread
-        Open3D::Open3D
+        #Open3D::Open3D
         Threads::Threads
         lgmath
         steam
@@ -146,7 +141,7 @@ target_link_libraries(ros2_slam_node
         OpenMP::OpenMP_CXX
         Boost::system
         Boost::thread
-        Open3D::Open3D
+        #Open3D::Open3D
         Threads::Threads
         lgmath
         steam
