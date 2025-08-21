@@ -50,15 +50,15 @@ class SLAMPipeline {
         static std::mutex global_mutex_;
 
         std::atomic<int> dropped_logs_;
-        boost::lockfree::spsc_queue<lidarDecode::LidarDataFrame, boost::lockfree::capacity<8>> lidar_buffer_;
+        boost::lockfree::spsc_queue<lidarDecode::LidarDataFrame, boost::lockfree::capacity<16>> lidar_buffer_;
 
-        boost::lockfree::spsc_queue<std::deque<decodeNav::DataFrameID20>, boost::lockfree::capacity<8>> gnss_window_buffer_;
-        boost::lockfree::spsc_queue<decodeNav::DataFrameID20, boost::lockfree::capacity<8>> gnss_buffer_;
+        boost::lockfree::spsc_queue<std::deque<decodeNav::DataFrameID20>, boost::lockfree::capacity<16>> gnss_window_buffer_;
+        boost::lockfree::spsc_queue<decodeNav::DataFrameID20, boost::lockfree::capacity<16>> gnss_buffer_;
 
         // boost::lockfree::spsc_queue<LidarIMUVecDataFrame, boost::lockfree::capacity<16>> lidar_imu_buffer_;
         boost::lockfree::spsc_queue<LidarGnssWindowDataFrame, boost::lockfree::capacity<16384>> lidar_gnsswindow_buffer_;
 
-        boost::lockfree::spsc_queue<std::string, boost::lockfree::capacity<8>> log_queue_;
+        boost::lockfree::spsc_queue<std::string, boost::lockfree::capacity<16>> log_queue_;
 
         explicit SLAMPipeline(const std::string& slam_registration, const std::string& odom_json_path, const std::string& lidar_json_path, const lidarDecode::OusterLidarCallback::LidarTransformPreset& T_preset, uint16_t N = 1);
         static void signalHandler(int signal);

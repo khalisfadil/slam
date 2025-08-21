@@ -9,7 +9,7 @@
         "sample_voxel_size": 0.8,
 
         "size_voxel_map": 1,
-        "min_distance_points": 0.5,
+        "min_distance_points": 0.1,
         "max_num_points_in_voxel": 20,
         "max_distance": 500.0,
         "min_number_neighbors": 5,
