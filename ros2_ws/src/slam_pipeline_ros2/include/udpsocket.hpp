@@ -7,9 +7,9 @@
 #include <optional>
 #include <chrono>
 #include <stdexcept>
+#include <iostream> // Added for std::cerr
 #include <boost/asio.hpp>
-#include <boost/core/span.hpp> 
-#include <spdlog/spdlog.h>
+#include <boost/core/span.hpp>
 
 namespace udp_socket {
 
@@ -62,8 +62,8 @@ namespace udp_socket {
             ErrorCallback errorCallback,
             const UdpSocketConfig& config)
             : socket_(context), resolver_(context), timeoutTimer_(context),
-            buffer_(config.bufferSize), dataCallback_(std::move(dataCallback)),
-            errorCallback_(std::move(errorCallback)), config_(config) {
+              buffer_(config.bufferSize), dataCallback_(std::move(dataCallback)),
+              errorCallback_(std::move(errorCallback)), config_(config) {
             if (config.bufferSize == 0) {
                 throw std::invalid_argument("Buffer size must be non-zero");
             }
@@ -120,15 +120,15 @@ namespace udp_socket {
             boost::system::error_code ec;
             timeoutTimer_.cancel(ec);
             if (ec) {
-                spdlog::error("Failed to cancel timer: {}", ec.message());
+                std::cerr << "Failed to cancel timer: " << ec.message() << std::endl;
             }
             socket_.cancel(ec);
             if (ec) {
-                spdlog::error("Failed to cancel socket: {}", ec.message());
+                std::cerr << "Failed to cancel socket: " << ec.message() << std::endl;
             }
             socket_.close(ec);
             if (ec) {
-                spdlog::error("Failed to close socket: {}", ec.message());
+                std::cerr << "Failed to close socket: " << ec.message() << std::endl;
             }
         }
 
@@ -153,7 +153,7 @@ namespace udp_socket {
             timeoutTimer_.expires_after(config_.resolveTimeout);
             timeoutTimer_.async_wait([self = shared_from_this()](const boost::system::error_code& ec) {
                 if (!ec) {
-                    spdlog::warn("DNS resolution timed out after {} ms", self->config_.resolveTimeout.count());
+                    std::cerr << "DNS resolution timed out after " << self->config_.resolveTimeout.count() << " ms" << std::endl;
                     self->resolver_.cancel();
                     if (self->errorCallback_) self->errorCallback_(boost::asio::error::timed_out);
                 }
@@ -164,14 +164,14 @@ namespace udp_socket {
             boost::system::error_code cancelEc;
             timeoutTimer_.cancel(cancelEc);
             if (cancelEc) {
-                spdlog::error("Failed to cancel timeout timer: {}", cancelEc.message());
+                std::cerr << "Failed to cancel timeout timer: " << cancelEc.message() << std::endl;
             }
             if (ec == boost::asio::error::operation_aborted) {
                 return; // Timer fired first, error already reported
             }
             if (ec) {
                 if (errorCallback_) errorCallback_(ec);
-                spdlog::error("Resolve error: {} (value: {})", ec.message(), ec.value());
+                std::cerr << "Resolve error: " << ec.message() << " (value: " << ec.value() << ")" << std::endl;
                 return;
             }
             setupSocket(endpoints);
@@ -182,28 +182,28 @@ namespace udp_socket {
             socket_.open(boost::asio::ip::udp::v4(), ec);
             if (ec) {
                 if (errorCallback_) errorCallback_(ec);
-                spdlog::error("Open error: {} (value: {})", ec.message(), ec.value());
+                std::cerr << "Open error: " << ec.message() << " (value: " << ec.value() << ")" << std::endl;
                 return;
             }
             if (config_.reuseAddress) {
                 socket_.set_option(boost::asio::socket_base::reuse_address(true), ec);
                 if (ec) {
                     if (errorCallback_) errorCallback_(ec);
-                    spdlog::error("Set reuse address error: {} (value: {})", ec.message(), ec.value());
+                    std::cerr << "Set reuse address error: " << ec.message() << " (value: " << ec.value() << ")" << std::endl;
                     return;
                 }
             }
             socket_.bind(*endpoints.begin(), ec);
             if (ec) {
                 if (errorCallback_) errorCallback_(ec);
-                spdlog::error("Bind error: {} (value: {})", ec.message(), ec.value());
+                std::cerr << "Bind error: " << ec.message() << " (value: " << ec.value() << ")" << std::endl;
                 return;
             }
             if (config_.enableBroadcast) {
                 socket_.set_option(boost::asio::socket_base::broadcast(true), ec);
                 if (ec) {
                     if (errorCallback_) errorCallback_(ec);
-                    spdlog::error("Set broadcast error: {} (value: {})", ec.message(), ec.value());
+                    std::cerr << "Set broadcast error: " << ec.message() << " (value: " << ec.value() << ")" << std::endl;
                     return;
                 }
             }
@@ -211,7 +211,7 @@ namespace udp_socket {
                 socket_.set_option(boost::asio::ip::multicast::join_group(*config_.multicastGroup), ec);
                 if (ec) {
                     if (errorCallback_) errorCallback_(ec);
-                    spdlog::error("Join multicast group error: {} (value: {})", ec.message(), ec.value());
+                    std::cerr << "Join multicast group error: " << ec.message() << " (value: " << ec.value() << ")" << std::endl;
                     return;
                 }
             }
@@ -219,7 +219,7 @@ namespace udp_socket {
                 socket_.set_option(boost::asio::ip::multicast::hops(*config_.ttl), ec);
                 if (ec) {
                     if (errorCallback_) errorCallback_(ec);
-                    spdlog::error("Set TTL error: {} (value: {})", ec.message(), ec.value());
+                    std::cerr << "Set TTL error: " << ec.message() << " (value: " << ec.value() << ")" << std::endl;
                     return;
                 }
             }
@@ -236,7 +236,7 @@ namespace udp_socket {
                 timeoutTimer_.expires_after(*config_.receiveTimeout);
                 timeoutTimer_.async_wait([self = shared_from_this()](const boost::system::error_code& ec) {
                     if (!ec) {
-                        spdlog::warn("Receive timed out after {} ms", self->config_.receiveTimeout->count());
+                        std::cerr << "Receive timed out after " << self->config_.receiveTimeout->count() << " ms" << std::endl;
                         self->socket_.cancel();
                         if (self->errorCallback_) self->errorCallback_(boost::asio::error::timed_out);
                     }
@@ -250,7 +250,7 @@ namespace udp_socket {
                 boost::system::error_code cancelEc;
                 timeoutTimer_.cancel(cancelEc);
                 if (cancelEc) {
-                    spdlog::error("Failed to cancel receive timeout timer: {}", cancelEc.message());
+                    std::cerr << "Failed to cancel receive timeout timer: " << cancelEc.message() << std::endl;
                 }
             }
             if (!ec && bytesReceived > 0) {
@@ -261,10 +261,10 @@ namespace udp_socket {
                 // No action needed
             } else if (ec) {
                 if (errorCallback_) errorCallback_(ec);
-                spdlog::error("Receive error: {} (value: {})", ec.message(), ec.value());
+                std::cerr << "Receive error: " << ec.message() << " (value: " << ec.value() << ")" << std::endl;
             } else {
                 if (errorCallback_) errorCallback_(boost::asio::error::no_data);
-                spdlog::error("No data received (bytes: {})", bytesReceived);
+                std::cerr << "No data received (bytes: " << bytesReceived << ")" << std::endl;
             }
             if (socket_.is_open()) {
                 startReceive();
