@@ -1,19 +1,24 @@
 <package format="3">
-  <name>slam_pipeline_ros2</name>
-  <version>0.0.1</version>
-  <description>ROS2 SLAM pipeline</description>
-  <maintainer email="your.email@example.com">Your Name</maintainer>
-  <license>Apache-2.0</license>
-  <depend>rclcpp</depend>
-  <depend>sensor_msgs</depend>
-  <depend>nav_msgs</depend>
-  <depend>tf2_ros</depend>
-  <depend>libeigen3-dev</depend>
-  <depend>nlohmann-json-dev</depend>
-  <depend>libboost-system-dev</depend>
-  <depend>libboost-thread-dev</depend>
-  <depend>libopenmp-dev</depend>
-  <depend>lgmath</depend>
-  <depend>steam</depend>
-  <buildtool_depend>ament_cmake</buildtool_depend>
+  [cite_start]<name>slam_pipeline_ros2</name> 
+  [cite_start]<version>0.0.1</version> 
+  [cite_start]<description>ROS2 SLAM pipeline</description> 
+  [cite_start]<maintainer email="your.email@example.com">Your Name</maintainer> 
+  [cite_start]<license>Apache-2.0</license> 
+  [cite_start]<depend>rclcpp</depend> 
+  [cite_start]<depend>sensor_msgs</depend> 
+  [cite_start]<depend>nav_msgs</depend> 
+  [cite_start]<depend>tf2_ros</depend> 
+  <depend>ament_index_cpp</depend>
+  [cite_start]<depend>libeigen3-dev</depend> 
+  [cite_start]<depend>nlohmann-json-dev</depend> 
+  [cite_start]<depend>libboost-system-dev</depend> 
+  [cite_start]<depend>libboost-thread-dev</depend> 
+  [cite_start]<depend>libopenmp-dev</depend> 
+  [cite_start]<depend>lgmath</depend> 
+  [cite_start]<depend>steam</depend> 
+  [cite_start]<buildtool_depend>ament_cmake</buildtool_depend> 
+
+  <export>
+    [cite_start]<build_type>ament_cmake</build_type> 
+  </export>
 </package>

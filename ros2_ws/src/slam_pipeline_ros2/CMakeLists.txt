@@ -9,7 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Compiler flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -fPIC -Wno-unused-but-set-variable")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ffast-math -march=native")
-# set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0 -DDEBUG")
+# set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_...}")
 
 # Silence deprecated policy warning from Open3D
 if(POLICY CMP0072)
@@ -18,17 +18,16 @@ endif()
 
 # Find ROS2 dependencies
 find_package(ament_cmake REQUIRED)
+find_package(ament_index_cpp REQUIRED) # <--- ADDED: Find ament_index_cpp
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 
 # Find other dependencies
-#set(Open3D_DIR "/usr/local/lib/cmake/Open3D/" CACHE PATH "Path to Open3D CMake config")
 find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(nlohmann_json REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system thread)
-#find_package(Open3D REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(lgmath REQUIRED)
 find_package(steam REQUIRED)
@@ -126,7 +125,6 @@ target_link_libraries(slam_core
         OpenMP::OpenMP_CXX
         Boost::system
         Boost::thread
-        #Open3D::Open3D
         Threads::Threads
         lgmath
         steam
@@ -137,7 +135,8 @@ target_link_libraries(slam_core
 # Create ROS2 executable
 add_executable(ros2_slam_node src/rclcpp.cpp)
 target_include_directories(ros2_slam_node PUBLIC ${PROJECT_INCLUDE_DIRS})
-ament_target_dependencies(ros2_slam_node PUBLIC rclcpp sensor_msgs nav_msgs tf2_ros)
+# MODIFIED: Add ament_index_cpp as a dependency
+ament_target_dependencies(ros2_slam_node PUBLIC rclcpp sensor_msgs nav_msgs tf2_ros ament_index_cpp)
 target_link_libraries(ros2_slam_node
     PUBLIC
         slam_core
@@ -146,7 +145,6 @@ target_link_libraries(ros2_slam_node
         OpenMP::OpenMP_CXX
         Boost::system
         Boost::thread
-        #Open3D::Open3D
         Threads::Threads
         lgmath
         steam
@@ -154,9 +152,15 @@ target_link_libraries(ros2_slam_node
         $<$<BOOL:${CPUID_LIBRARY}>:${CPUID_LIBRARY}>
 )
 
-# Install targets
+# Install executable
 install(TARGETS ros2_slam_node
     DESTINATION lib/${PROJECT_NAME}
+)
+
+# ADDED: Install the config directory to the package's share folder
+install(
+  DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}
 )
 
 # Generate compile commands for IDEs
