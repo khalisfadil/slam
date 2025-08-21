@@ -3,12 +3,12 @@
     "odometry_options": {
 
         "init_num_frames": 10,
-        "init_voxel_size": 0.8,
+        "init_voxel_size": 0.4,
         "voxel_size": 1.0,
-        "init_sample_voxel_size": 0.8,
+        "init_sample_voxel_size": 0.4,
         "sample_voxel_size": 1.0,
 
-        "size_voxel_map": 1.0,
+        "size_voxel_map": 0.8,
         "min_distance_points": 0.1,
         "max_num_points_in_voxel": 20,
         "max_distance": 500.0,
@@ -29,9 +29,9 @@
 
         "Tb2s": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
 
-        "ad_diag": [1, 1, 1, 1, 1, 1],
-        "qc_diag": [1, 1, 1, 1, 1, 1],
-        "num_extra_states": 0,
+        "ad_diag": [10, 10, 10, 10, 10, 10],
+        "qc_diag": [10, 10, 10, 10, 10, 10],
+        "num_extra_states": 2,
 
         "power_planarity": 2.0,
         "p2p_max_dist": 1.0,
@@ -49,7 +49,7 @@
         "max_iterations": 10,
         "sequential_threshold" : 1000,
         "num_threads": 16,
-        "delay_adding_points": 5,
+        "delay_adding_points": 10,
         "use_final_state_value": false,
         "break_icp_early": true,
         "use_line_search": true,
