@@ -30,8 +30,8 @@ class SlamPipelineNode : public rclcpp::Node {
 
         void init() {
             // JSON parsing
-            std::string lidar_json = "../config/2025047_1054_OS-2-128_122446000745.json";
-            std::string config_json = "../config/odom_config.json";
+            std::string lidar_json = "./src/slam_pipeline_ros2/config/2025047_1054_OS-2-128_122446000745.json";
+            std::string config_json = "./src/slam_pipeline_ros2/config/odom_config.json";
             uint32_t lidar_packet_size = 24896;
             uint16_t udp_port_gnss = 6597;
             uint32_t id20_packet_size = 105;
@@ -98,7 +98,7 @@ class SlamPipelineNode : public rclcpp::Node {
                 std::move(tf_static_broadcaster_));
 
             // Update lidar_packet_size based on profile
-            std::string log_filename = "../report/log/log_report_" + timestamp_ + ".txt";
+            std::string log_filename = "./src/slam_pipeline_ros2/report/log/log_report_" + timestamp_ + ".txt";
             if (udp_profile_lidar == "RNG19_RFL8_SIG16_NIR16") {
                 config_lidar_.bufferSize = 24832;
                 threads_.emplace_back([&]() { pipeline_->runOusterLidarListenerSingleReturn(*io_context_, config_lidar_, {0}); });
