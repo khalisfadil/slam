@@ -678,6 +678,13 @@ void SLAMPipeline::runLoStateEstimation(const std::vector<int>& allowedCores)
 
     while (running_.load(std::memory_order_acquire)) {
         try {
+            //0 timer
+            std::vector<std::pair<std::string, std::unique_ptr<stateestimate::Stopwatch<>>>> timer;
+            // Add timers for different ICP phases (only if debug_print is true)
+            timer.emplace_back("Loading ......................... ", std::make_unique<stateestimate::Stopwatch<>>(false));
+            timer.emplace_back("Registration .................... ", std::make_unique<stateestimate::Stopwatch<>>(false));
+
+            timer[0].second->start();
             // 1. Pop combined LiDAR-GNSS data from buffer
             LidarGnssWindowDataFrame tempCombineddata;
             if (!lidar_gnsswindow_buffer_.pop(tempCombineddata)) {
@@ -687,7 +694,7 @@ void SLAMPipeline::runLoStateEstimation(const std::vector<int>& allowedCores)
 #ifdef DEBUG
                     logMessage("WARNING", "runLoStateEstimation: No data available after multiple attempts.");
 #endif
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
                     continue;
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -784,9 +791,12 @@ void SLAMPipeline::runLoStateEstimation(const std::vector<int>& allowedCores)
                     }
                 }
             }
+            timer[0].second->stop();
 
             // 5. Register frame with odometry
+            timer[1].second->start();
             const auto summary = odometry_->registerFrame(currDataFrame);
+            timer[1].second->stop();
 
 #ifdef DEBUG
             // Stop timer
@@ -796,17 +806,37 @@ void SLAMPipeline::runLoStateEstimation(const std::vector<int>& allowedCores)
             oss_timer << "runLoStateEstimation: Frame processing time: " << duration.count() << " ms.";
             logMessage("TIMER", oss_timer.str());
 #endif
+            logMessage("LOGGING", "runLoStateEstimation: INNER LOOP TIMER.");
+            for (size_t i = 0; i < timer.size(); i++) {
+                std::ostringstream oss;
+                oss << "Elapsed: " << timer[i].first << *(timer[i].second);
+                logMessage("LOGGING", oss.str());
+            }
 
             if (!summary.success) {
 #ifdef DEBUG
                 logMessage("WARNING", "runLoStateEstimation: State estimation failed.");
+                
 #endif
+                continue;
             } else {
 #ifdef DEBUG
                 logMessage("LOGGING", "runLoStateEstimation: Successfully registered frame with timestamp " +
                            std::to_string(currDataFrame.timestamp));
 #endif
             }
+
+            // if summary success, send data for vizualization
+            //###############!!!!!!!!!!!!!!!!!!! CRITICAL
+            //as sensor to body Tb2s is defined identity, (only in this case)
+            
+            // Eigen::Matrix4d Tb2m = Eigen::Matrix4d::Identity();
+            // Tb2m.block<3, 3>(0, 0) = summary.Rs2m;
+            // Tb2m.block<3, 1>(0, 3) = summary.ts2m;
+
+            // auto &sampled_points = summary.corrected_points;
+            // auto map_points = odometry_->map();
+            
 
         } catch (const std::exception& e) {
 #ifdef DEBUG

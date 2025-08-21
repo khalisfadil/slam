@@ -1,7 +1,7 @@
 #include <pipeline.hpp>
 
 int main() {
-    std::string lidar_json = "../config/2025047_1054_OS-2-128_122446000745.json";
+    std::string lidar_json = "../config/OS-2-128_122523002479_2048x10.json";
     std::string config_json = "../config/odom_config.json";
     uint32_t lidar_packet_size = 24896;
 

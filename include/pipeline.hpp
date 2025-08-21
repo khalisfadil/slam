@@ -29,6 +29,7 @@
 #include <DataFrame_ID29.hpp>
 
 #include <navMath.hpp>
+#include <utils/stopwatch.hpp>
 
 class SLAMPipeline {
 
