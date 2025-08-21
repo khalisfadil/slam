@@ -710,11 +710,6 @@ void SLAMPipeline::runLoStateEstimation(const std::vector<int>& allowedCores)
                 continue;
             }
 
-#ifdef DEBUG
-            // Start timer
-            auto start_time = std::chrono::high_resolution_clock::now();
-#endif
-
             // 3. Initialize odometry if needed
             if (!init_) {
                 if (tempCombineddata.GnssWindow.empty()) {
@@ -732,12 +727,12 @@ void SLAMPipeline::runLoStateEstimation(const std::vector<int>& allowedCores)
                 }
 
                 // Calculate rotation from robot to map (R_mr)
-                Eigen::Matrix3d Rb2m = navMath::Cb2n(navMath::getQuat(currFrame.roll, currFrame.pitch, currFrame.yaw));
-                Eigen::Matrix4d Tb2m = Eigen::Matrix4d::Identity();
-                Tb2m.block<3, 3>(0, 0) = Rb2m;
+                Eigen::Matrix3d Rb2w = navMath::Cb2n(navMath::getQuat(currFrame.roll, currFrame.pitch, currFrame.yaw));
+                Eigen::Matrix4d Tb2w = Eigen::Matrix4d::Identity();
+                Tb2w.block<3, 3>(0, 0) = Rb2w;
 
                 // Initialize odometry
-                odometry_->initializeInitialPose(Tb2m); //body to global map
+                odometry_->initializeInitialPose(Tb2w); //body to global map
                 init_ = true;
 
 #ifdef DEBUG
@@ -798,14 +793,6 @@ void SLAMPipeline::runLoStateEstimation(const std::vector<int>& allowedCores)
             const auto summary = odometry_->registerFrame(currDataFrame);
             timer[1].second->stop();
 
-#ifdef DEBUG
-            // Stop timer
-            auto end_time = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
-            std::ostringstream oss_timer;
-            oss_timer << "runLoStateEstimation: Frame processing time: " << duration.count() << " ms.";
-            logMessage("TIMER", oss_timer.str());
-#endif
             logMessage("LOGGING", "runLoStateEstimation: INNER LOOP TIMER.");
             for (size_t i = 0; i < timer.size(); i++) {
                 std::ostringstream oss;
@@ -906,13 +893,13 @@ void SLAMPipeline::runGroundTruthEstimation(const std::string& filename, const s
             }
 
             // Process frame
-            Eigen::Matrix4d Tb2m = Eigen::Matrix4d::Identity();
+            Eigen::Matrix4d Tb2w = Eigen::Matrix4d::Identity();
             if (is_firstFrame_) {
                 // Handle the first frame
-                Eigen::Matrix3d Rb2m = navMath::Cb2n(navMath::getQuat(
+                Eigen::Matrix3d Rb2w = navMath::Cb2n(navMath::getQuat(
                     currFrame.roll, currFrame.pitch, currFrame.yaw));
                 // Eigen::Matrix3d Rm2b = Rb2m.transpose();
-                Tb2m.block<3, 3>(0, 0) = Rb2m;
+                Tb2w.block<3, 3>(0, 0) = Rb2w;
 
                 originFrame_ = currFrame;
                 is_firstFrame_ = false;
@@ -923,10 +910,10 @@ void SLAMPipeline::runGroundTruthEstimation(const std::string& filename, const s
                         << currFrame.latitude << " " << currFrame.longitude << " " << currFrame.altitude << " "
                         << currFrame.roll << " " << currFrame.pitch << " " << currFrame.yaw << "\n";
                 outfile << std::fixed << std::setprecision(12) << Time.nanosecs() << " "
-                        << Tb2m(0, 0) << " " << Tb2m(0, 1) << " " << Tb2m(0, 2) << " " << Tb2m(0, 3) << " "
-                        << Tb2m(1, 0) << " " << Tb2m(1, 1) << " " << Tb2m(1, 2) << " " << Tb2m(1, 3) << " "
-                        << Tb2m(2, 0) << " " << Tb2m(2, 1) << " " << Tb2m(2, 2) << " " << Tb2m(2, 3) << " "
-                        << Tb2m(3, 0) << " " << Tb2m(3, 1) << " " << Tb2m(3, 2) << " " << Tb2m(3, 3) << "\n";
+                        << Tb2w(0, 0) << " " << Tb2w(0, 1) << " " << Tb2w(0, 2) << " " << Tb2w(0, 3) << " "
+                        << Tb2w(1, 0) << " " << Tb2w(1, 1) << " " << Tb2w(1, 2) << " " << Tb2w(1, 3) << " "
+                        << Tb2w(2, 0) << " " << Tb2w(2, 1) << " " << Tb2w(2, 2) << " " << Tb2w(2, 3) << " "
+                        << Tb2w(3, 0) << " " << Tb2w(3, 1) << " " << Tb2w(3, 2) << " " << Tb2w(3, 3) << "\n";
 
 #ifdef DEBUG
                 std::ostringstream oss;
@@ -937,29 +924,29 @@ void SLAMPipeline::runGroundTruthEstimation(const std::string& filename, const s
 #endif
             } else {
                 // Handle subsequent frames
-                Eigen::Matrix3d Rb2m = navMath::Cb2n(navMath::getQuat(
+                Eigen::Matrix3d Rb2w = navMath::Cb2n(navMath::getQuat(
                     currFrame.roll, currFrame.pitch, currFrame.yaw));
-                Eigen::Vector3d tb2m = navMath::LLA2NED(
+                Eigen::Vector3d tb2w = navMath::LLA2NED(
                     currFrame.latitude, currFrame.longitude, currFrame.altitude,
                     originFrame_.latitude, originFrame_.longitude, originFrame_.altitude);
-                Eigen::Matrix3d Rm2b = Rb2m.transpose();
-                Eigen::Vector3d tm2b = -Rm2b * tb2m;
-                Tb2m.block<3, 3>(0, 0) = Rb2m;
-                Tb2m.block<3, 1>(0, 3) = tb2m;
+                Eigen::Matrix3d Rw2b = Rb2w.transpose();
+                Eigen::Vector3d tw2b = -Rw2b * tb2w;
+                Tb2w.block<3, 3>(0, 0) = Rb2w;
+                Tb2w.block<3, 1>(0, 3) = tb2w;
 
-                Eigen::Matrix4d Tm2b = Eigen::Matrix4d::Identity();
-                Tm2b.block<3, 3>(0, 0) = Rm2b;
-                Tm2b.block<3, 1>(0, 3) = tm2b;
+                Eigen::Matrix4d Tw2b = Eigen::Matrix4d::Identity();
+                Tw2b.block<3, 3>(0, 0) = Rw2b;
+                Tw2b.block<3, 1>(0, 3) = tw2b;
 
-                odometry_->T_i_r_gt_poses.push_back(Tm2b);
+                odometry_->T_i_r_gt_poses.push_back(Tw2b);
 
                 // Output transformation
                 steam::traj::Time Time(currFrame.unixTime);
                 outfile << std::fixed << std::setprecision(12) << Time.nanosecs() << " "
-                        << Tb2m(0, 0) << " " << Tb2m(0, 1) << " " << Tb2m(0, 2) << " " << Tb2m(0, 3) << " "
-                        << Tb2m(1, 0) << " " << Tb2m(1, 1) << " " << Tb2m(1, 2) << " " << Tb2m(1, 3) << " "
-                        << Tb2m(2, 0) << " " << Tb2m(2, 1) << " " << Tb2m(2, 2) << " " << Tb2m(2, 3) << " "
-                        << Tb2m(3, 0) << " " << Tb2m(3, 1) << " " << Tb2m(3, 2) << " " << Tb2m(3, 3) << "\n";
+                        << Tw2b(0, 0) << " " << Tw2b(0, 1) << " " << Tw2b(0, 2) << " " << Tw2b(0, 3) << " "
+                        << Tw2b(1, 0) << " " << Tw2b(1, 1) << " " << Tw2b(1, 2) << " " << Tw2b(1, 3) << " "
+                        << Tw2b(2, 0) << " " << Tw2b(2, 1) << " " << Tw2b(2, 2) << " " << Tw2b(2, 3) << " "
+                        << Tw2b(3, 0) << " " << Tw2b(3, 1) << " " << Tw2b(3, 2) << " " << Tw2b(3, 3) << "\n";
 
 #ifdef DEBUG
                 std::ostringstream oss;

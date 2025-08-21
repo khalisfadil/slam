@@ -5,8 +5,8 @@
 clear all; close all; clc;
 
 % --- File Paths ---
-pc_file = './traj/map_20250819_101530.txt'; % Point cloud file
-traj_file = './traj/trajectory_20250819_101530.txt'; % Trajectory file
+pc_file = './traj/map_20250821_110030.txt'; % Point cloud file
+traj_file = './traj/trajectory_20250821_110030.txt'; % Trajectory file
 
 % --- Read Point Cloud ---
 % Format: x y z (map frame, NED: X=North, Y=East, Z=Down)
